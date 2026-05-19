@@ -118,7 +118,7 @@ export default function Dashboard() {
     },
     {
       label: 'Nómina Estimada',
-      value: loading ? '—' : `$${(totalPayroll / 1000000).toFixed(1)}M`,
+      value: loading ? '—' : `$${totalPayroll.toLocaleString('es-CL')}`,
       sub: 'Sueldos base totales',
       icon: Wallet,
       accent: '#7C3AED',

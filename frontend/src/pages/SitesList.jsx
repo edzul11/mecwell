@@ -1,7 +1,7 @@
 import { apiFetch } from '../supabaseClient'
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Plus, ChevronRight, MapPin, Users } from 'lucide-react'
+import { Plus, ChevronRight, MapPin, Users, Trash2 } from 'lucide-react'
 import SiteModal from '../components/SiteModal'
 import { PageWrapper, PageHeader, PrimaryButton, MwTable, MwTr, MwTd, StatusBadge } from '../components/MecwellUI'
 
@@ -16,6 +16,26 @@ export default function SitesList() {
       .then(data => { setSites(Array.isArray(data) ? data : []); setLoading(false) })
       .catch(err => { console.error(err); setLoading(false) })
   }, [])
+
+  const handleDelete = async (siteId, siteName) => {
+    const confirmed = window.confirm(`¿Estás seguro de que deseas eliminar la faena "${siteName}"?\nLos trabajadores no se eliminarán, quedarán desasociados.`);
+    if (!confirmed) return;
+
+    try {
+      const res = await apiFetch(`http://127.0.0.1:8000/api/v1/sites/${siteId}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        setSites(prev => prev.filter(s => s.id !== siteId));
+      } else {
+        const errData = await res.json();
+        alert(`Error al eliminar la faena: ${errData.detail || 'Error de servidor'}`);
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error de conexión al eliminar la faena.');
+    }
+  };
 
   return (
     <PageWrapper>
@@ -66,12 +86,27 @@ export default function SitesList() {
             </MwTd>
             <MwTd><StatusBadge status={site.status || 'active'} /></MwTd>
             <MwTd right>
-              <Link to={`/sites/${site.id}`} style={{
-                display: 'inline-flex', alignItems: 'center', gap: 4,
-                fontSize: 12, fontWeight: 600, color: '#1E4D8C', textDecoration: 'none',
-              }}>
-                Ver Faena <ChevronRight style={{ width: 14, height: 14 }} />
-              </Link>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 16 }}>
+                <Link to={`/sites/${site.id}`} style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 4,
+                  fontSize: 12, fontWeight: 600, color: '#1E4D8C', textDecoration: 'none',
+                }}>
+                  Ver Faena <ChevronRight style={{ width: 14, height: 14 }} />
+                </Link>
+                <button
+                  onClick={() => handleDelete(site.id, site.name)}
+                  style={{
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    padding: 4, borderRadius: 6, display: 'inline-flex', alignItems: 'center',
+                    color: '#94A3B8', transition: 'all 0.2s',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.color = '#EF4444'}
+                  onMouseLeave={e => e.currentTarget.style.color = '#94A3B8'}
+                  title="Eliminar Faena"
+                >
+                  <Trash2 style={{ width: 15, height: 15 }} />
+                </button>
+              </div>
             </MwTd>
           </MwTr>
         ))}
