@@ -2,22 +2,29 @@ import React, { useState } from 'react'
 import { apiFetch } from '../supabaseClient'
 import { X } from 'lucide-react'
 
-export default function AdvanceModal({ isOpen, onClose, worker, onSaved }) {
+export default function AdvanceModal({ isOpen, onClose, worker: initialWorker, onSaved, workersList = [] }) {
   const [formData, setFormData] = useState({
     amount: '',
     date: new Date().toISOString().split('T')[0],
     reason: ''
   })
+  const [selectedWorkerId, setSelectedWorkerId] = useState('')
   const [loading, setLoading] = useState(false)
 
-  if (!isOpen || !worker) return null
+  if (!isOpen) return null
+
+  const activeWorker = initialWorker || workersList.find(w => w.id === selectedWorkerId)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    if (!activeWorker) {
+      alert("Por favor selecciona un trabajador.")
+      return
+    }
     setLoading(true)
     try {
       const payload = {
-        worker_id: worker.id,
+        worker_id: activeWorker.id,
         amount: parseFloat(formData.amount),
         date: formData.date,
         reason: formData.reason
@@ -34,6 +41,7 @@ export default function AdvanceModal({ isOpen, onClose, worker, onSaved }) {
       const saved = await res.json()
       onSaved(saved)
       setFormData({ amount: '', date: new Date().toISOString().split('T')[0], reason: '' })
+      setSelectedWorkerId('')
       onClose()
     } catch (err) {
       alert(err.message)
@@ -53,17 +61,39 @@ export default function AdvanceModal({ isOpen, onClose, worker, onSaved }) {
         </div>
         
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {!initialWorker && (
+            <div>
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Seleccionar Trabajador</label>
+              <select
+                required
+                value={selectedWorkerId}
+                onChange={e => setSelectedWorkerId(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-lg text-sm bg-white"
+              >
+                <option value="">-- Seleccionar trabajador --</option>
+                {workersList.map(w => (
+                  <option key={w.id} value={w.id}>
+                    {w.first_name} {w.last_name} ({w.rut})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <div>
             <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Monto Solicitado ($)</label>
             <input
               type="number"
               required
-              max={worker.base_salary}
+              max={activeWorker ? activeWorker.base_salary : undefined}
               value={formData.amount}
               onChange={e => setFormData({...formData, amount: e.target.value})}
               className="w-full p-2 border border-gray-300 rounded-lg text-sm"
-              placeholder={`Máx: $${worker.base_salary}`}
+              placeholder={activeWorker ? `Máx: $${activeWorker.base_salary}` : 'Monto del anticipo'}
             />
+            {activeWorker && (
+              <p className="text-[10px] text-gray-400 mt-1">Sueldo Base: ${activeWorker.base_salary?.toLocaleString('es-CL')}</p>
+            )}
           </div>
           <div>
             <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Fecha</label>

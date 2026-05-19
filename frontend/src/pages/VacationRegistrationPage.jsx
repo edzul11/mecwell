@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { apiFetch } from '../supabaseClient'
+import { apiFetch, API_BASE_URL } from '../supabaseClient'
 import { 
   MwPage, MwCard, MwButton 
 } from '../components/MecwellUI'
@@ -209,7 +209,7 @@ export default function VacationRegistrationPage() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   {savedId && (
                     <MwButton 
-                      onClick={() => window.open(`http://127.0.0.1:8000/api/v1/vacaciones/comprobante/${savedId}`, '_blank')}
+                      onClick={() => window.open(`${API_BASE_URL}/api/v1/vacaciones/comprobante/${savedId}`, '_blank')}
                       style={{ width: '100%', backgroundColor: '#1E4D8C' }}
                     >
                       Descargar Comprobante PDF

@@ -1,6 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import {
-  LogOut, ChevronDown, Globe, Building2, TreePalm, FileX, LayoutDashboard, Users, UserPlus, HardHat, FileText, FileSignature, Wallet, Package, Receipt, Calendar
+  LogOut, ChevronDown, Globe, Building2, TreePalm, FileX, LayoutDashboard, Users, UserPlus, HardHat, FileText, FileSignature, Wallet, Package, Receipt, Calendar, Banknote
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useFaena } from '../context/FaenaContext'
@@ -35,6 +35,7 @@ const navigationGroups = [
     title: 'Remuneraciones y Términos',
     items: [
       { name: 'Liquidaciones', href: '/payslips',  icon: Wallet          },
+      { name: 'Anticipos',     href: '/advances',  icon: Banknote        },
       { name: 'Vacaciones',    href: '/vacations', icon: TreePalm        },
       { name: 'Finiquitos',    href: '/finiquitos',icon: FileX           },
     ]

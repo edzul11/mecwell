@@ -37,7 +37,20 @@ def get_saldo_vacaciones(worker_id: str, supabase: Client = Depends(get_db_clien
     
     # Lógica simple de cálculo (1.25 días por mes)
     from datetime import date
-    entry_date = date.fromisoformat(w_res.data[0]['entry_date'])
+    entry_date_str = w_res.data[0].get('entry_date')
+    if not entry_date_str:
+        # Retornar saldo en cero si no se ha configurado la fecha de ingreso
+        v_res = supabase.table("vacaciones").select("dias_habiles").eq("worker_id", worker_id).eq("estado", "aprobado").execute()
+        total_tomadas = sum(v['dias_habiles'] for v in v_res.data)
+        return {
+            "worker_id": worker_id,
+            "total_acumulado": 0.0,
+            "total_tomadas": total_tomadas,
+            "saldo_actual": 0.0 - total_tomadas,
+            "message": "Fecha de ingreso del trabajador no configurada"
+        }
+        
+    entry_date = date.fromisoformat(entry_date_str)
     today = date.today()
     months = (today.year - entry_date.year) * 12 + today.month - entry_date.month
     total_acumulado = months * 1.25

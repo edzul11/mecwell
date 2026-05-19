@@ -5,6 +5,8 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
+
 export const apiFetch = async (url, options = {}) => {
   const { data: { session } } = await supabase.auth.getSession()
   const token = session?.access_token
@@ -14,10 +16,9 @@ export const apiFetch = async (url, options = {}) => {
     ...(token ? { 'Authorization': `Bearer ${token}` } : {})
   }
   
-  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
   const targetUrl = url.startsWith('/') 
-    ? `${apiBaseUrl}${url}` 
-    : url.replace(/^http:\/\/(127\.0\.0\.1|localhost):8000/, apiBaseUrl)
+    ? `${API_BASE_URL}${url}` 
+    : url.replace(/^http:\/\/(127\.0\.0\.1|localhost):8000/, API_BASE_URL)
   
   return fetch(targetUrl, { ...options, headers })
 }

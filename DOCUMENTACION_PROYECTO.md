@@ -67,3 +67,11 @@ Se implementaron las siguientes mejoras en la arquitectura base:
 - **Módulo de Anticipos**: Se creó el flujo de Anticipo de Sueldo (tabla `salary_advances`), el cual genera un comprobante PDF para firma y se descuenta de manera automática en la liquidación de sueldo del mes en curso, previniendo anticipos por sobre el sueldo base.
 - **Monto en Palabras**: Los documentos legales y finiquitos ahora traducen automáticamente los montos totales a texto formal (ej. "UN MILLÓN QUINIENTOS MIL PESOS").
 
+---
+
+## 5. Cosas Urgentes por Hacer
+
+1. **Lector de Liquidaciones de Sueldo Externas (OCR / Parser de PDFs):**
+   - **Requerimiento:** Implementar un lector de documentos inteligente (OCR o extractor de texto de PDFs) que permita al usuario subir liquidaciones de sueldo generadas de manera externa (fuera de Camila HR), extraer automáticamente los montos de sueldo base, descuentos y gastos, y vincularlos directamente en la ficha o base de datos de cada trabajador correspondiente.
+   - **Nota de Preservación:** El módulo nativo de liquidaciones internas de Camila HR (`payslips.py` / `PayslipsList.jsx`) debe mantenerse intacto y sin modificaciones en caso de que en el futuro la empresa decida volver a utilizar las herramientas nativas.
+

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from typing import List
 from ..schemas.worker import WorkerCreate, WorkerResponse
 from ..database import get_db_client
@@ -109,3 +109,58 @@ def reactivate_worker(worker_id: str, site_id: str, supabase: Client = Depends(g
     if not response.data:
         raise HTTPException(status_code=404, detail="Worker not found")
     return response.data[0]
+
+@router.delete("/{worker_id}")
+def delete_worker(worker_id: str, request: Request, supabase: Client = Depends(get_db_client)):
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Supabase client not initialized")
+        
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="No autorizado")
+        
+    token = auth_header.split(" ")[1]
+    
+    # 1. Obtener la sesión del usuario de Supabase Auth
+    try:
+        user_res = supabase.auth.get_user(token)
+        user = user_res.user
+    except Exception as e:
+        raise HTTPException(status_code=401, detail="Token inválido o expirado")
+        
+    # 2. Validar que el usuario es el administrador autorizado
+    is_authorized = (
+        user.id == "b1cb200f-ae69-431a-90f6-fbc4d1bea827" or 
+        user.email == "zedmundofrancisco@gmail.com"
+    )
+    if not is_authorized:
+        raise HTTPException(
+            status_code=403, 
+            detail="No autorizado. Solo el administrador zedmundofrancisco@gmail.com puede eliminar trabajadores permanentemente."
+        )
+        
+    # 3. Eliminar de forma segura y secuencial todos los registros dependientes
+    try:
+        # a. Finiquitos y sus ítems
+        finiquito_res = supabase.table("finiquitos").select("id").eq("worker_id", worker_id).execute()
+        if finiquito_res.data:
+            finiquito_ids = [f["id"] for f in finiquito_res.data]
+            supabase.table("finiquito_items").delete().in_("finiquito_id", finiquito_ids).execute()
+            supabase.table("finiquitos").delete().eq("worker_id", worker_id).execute()
+            
+        # b. Resto de tablas
+        supabase.table("attendance").delete().eq("worker_id", worker_id).execute()
+        supabase.table("ppe_assignments").delete().eq("worker_id", worker_id).execute()
+        supabase.table("payslips").delete().eq("worker_id", worker_id).execute()
+        supabase.table("salary_advances").delete().eq("worker_id", worker_id).execute()
+        supabase.table("documents").delete().eq("worker_id", worker_id).execute()
+        supabase.table("vacaciones").delete().eq("worker_id", worker_id).execute()
+        
+        # c. Eliminar finalmente el trabajador
+        res = supabase.table("workers").delete().eq("id", worker_id).execute()
+        if not res.data:
+            raise HTTPException(status_code=404, detail="Trabajador no encontrado en el sistema")
+            
+        return {"message": "Trabajador y toda su información asociada eliminados exitosamente del software."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error durante la eliminación en cascada: {str(e)}")

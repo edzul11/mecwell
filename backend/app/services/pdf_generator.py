@@ -382,13 +382,30 @@ def generate_finiquito_pdf(worker: dict, finiquito: dict, items: list) -> bytes:
     # Table of items
     table_data = [["Descripción de Conceptos", "Haberes ($)", "Descuentos ($)"]]
     for item in items:
-        val = f"{item.get('valor', 0):,}"
+        item_val = item.get('valor')
+        if item_val is None:
+            item_val = 0
+        try:
+            item_val = int(round(float(item_val)))
+        except (ValueError, TypeError):
+            item_val = 0
+        
+        val = f"{item_val:,}"
         if item.get('tipo', '').startswith('hab'):
             table_data.append([item.get('nombre', ''), val, ""])
         else:
             table_data.append([item.get('nombre', ''), "", val])
     
-    table_data.append(["<b>TOTAL NETO A PAGAR</b>", f"<b>{finiquito.get('monto_neto', 0):,}</b>", ""])
+    # Sanitize and calculate neto
+    monto_neto = finiquito.get('monto_neto')
+    if monto_neto is None:
+        monto_neto = 0
+    try:
+        monto_neto = int(round(float(monto_neto)))
+    except (ValueError, TypeError):
+        monto_neto = 0
+
+    table_data.append(["<b>TOTAL NETO A PAGAR</b>", f"<b>{monto_neto:,}</b>", ""])
     
     t = Table(table_data, colWidths=[3.5*inch, 1.2*inch, 1.2*inch])
     t.setStyle(TableStyle([
@@ -402,8 +419,13 @@ def generate_finiquito_pdf(worker: dict, finiquito: dict, items: list) -> bytes:
     elements.append(Spacer(1, 0.25 * inch))
 
     # Monto en palabras
-    monto_neto = finiquito.get('monto_neto', 0)
-    monto_palabras = num2words(monto_neto, lang='es').upper()
+    monto_palabras = "CERO"
+    if monto_neto > 0:
+        try:
+            monto_palabras = num2words(monto_neto, lang='es').upper()
+        except Exception:
+            monto_palabras = str(monto_neto)
+    
     elements.append(Paragraph(f"<b>SON: {monto_palabras} PESOS.-</b>", justify_style))
     elements.append(Spacer(1, 0.25 * inch))
     
@@ -423,8 +445,8 @@ def generate_finiquito_pdf(worker: dict, finiquito: dict, items: list) -> bytes:
     # Signatures
     sig_data = [
         ["_________________________", "_________________________"],
-        [f"{worker.get('first_name')} {worker.get('last_name')}", "MECWELL LIMITADA"],
-        [f"RUT: {worker.get('rut')}", "p.p. Empleador"]
+        [f"{worker.get('first_name', '')} {worker.get('last_name', '')}", "MECWELL LIMITADA"],
+        [f"RUT: {worker.get('rut', '')}", "p.p. Empleador"]
     ]
     tsig = Table(sig_data, colWidths=[3.2*inch, 3.2*inch])
     tsig.setStyle(TableStyle([('ALIGN', (0,0), (-1,-1), 'CENTER'), ('FONTSIZE', (0,0), (-1,-1), 10)]))

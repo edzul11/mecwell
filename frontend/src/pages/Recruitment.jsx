@@ -310,6 +310,13 @@ export default function Recruitment() {
     }
   }
 
+  // Trigger preview automatically when reaching the contract step
+  useEffect(() => {
+    if (activeTab === 'contrato' && createdWorker) {
+      handlePreviewPDF()
+    }
+  }, [activeTab])
+
   // Generate & Download Contract
   const handleGenerateContract = async () => {
     if (!createdWorker) return
@@ -596,7 +603,7 @@ export default function Recruitment() {
                 <UploadCloud className="w-5 h-5 text-indigo-600" /> 3. Checklist y Carga de Documentos Legales
               </h3>
               <p className="text-xs text-gray-500 mb-6">
-                Sube la documentación del trabajador. Si falta algún documento, se mostrará una advertencia, pero se permitirá continuar el alta.
+                Sube la documentación del trabajador. Si falta algún documento, se mostrará una advertencia, pero se permitirá continuar con la contratación.
               </p>
 
               {missingDocs.length > 0 && (
@@ -790,10 +797,10 @@ export default function Recruitment() {
               <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6">
                 <CheckCircle className="w-10 h-10 text-emerald-600" />
               </div>
-              <h3 style={{ fontSize: 24, fontWeight: 800, color: '#1E4D8C' }}>¡Alta de Personal Exitosa!</h3>
+              <h3 style={{ fontSize: 24, fontWeight: 800, color: '#1E4D8C' }}>¡Contratación Exitosa!</h3>
               <p style={{ color: '#64748B', marginTop: 8, marginBottom: 32 }}>
                 El perfil de <strong>{personalData.first_name} {personalData.last_name}</strong> se ha registrado correctamente. 
-                Los documentos legales y el contrato firmado han sido enlazados exitosamente en la base de datos de <strong>Camila HR</strong>.
+                Los documentos legales y el contrato de trabajo han sido enlazados exitosamente en la base de datos de <strong>Camila HR</strong>.
               </p>
               
               <div className="flex justify-center gap-4">

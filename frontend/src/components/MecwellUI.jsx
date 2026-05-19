@@ -17,7 +17,7 @@ export function PageHeader({ title, subtitle, action }) {
 }
 
 // Botón primario Mecwell
-export function PrimaryButton({ children, onClick, type = 'button', disabled = false, className = '', ...props }) {
+export function PrimaryButton({ children, onClick, type = 'button', disabled = false, className = '', style = {}, ...props }) {
   return (
     <button
       type={type}
@@ -26,6 +26,7 @@ export function PrimaryButton({ children, onClick, type = 'button', disabled = f
       className={className}
       style={{
         display: 'inline-flex', alignItems: 'center', gap: 6,
+        justifyContent: 'center',
         padding: '9px 18px',
         backgroundColor: disabled ? '#93B4D4' : '#1E4D8C',
         color: '#fff',
@@ -35,6 +36,7 @@ export function PrimaryButton({ children, onClick, type = 'button', disabled = f
         cursor: disabled ? 'not-allowed' : 'pointer',
         transition: 'background-color 0.15s',
         whiteSpace: 'nowrap',
+        ...style
       }}
       onMouseEnter={e => { if (!disabled) e.currentTarget.style.backgroundColor = '#163d6f' }}
       onMouseLeave={e => { if (!disabled) e.currentTarget.style.backgroundColor = '#1E4D8C' }}

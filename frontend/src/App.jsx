@@ -17,6 +17,7 @@ import VacationsList from './pages/VacationsList'
 import VacationRegistrationPage from './pages/VacationRegistrationPage'
 import FiniquitosList from './pages/FiniquitosList'
 import FiniquitoWizardPage from './pages/FiniquitoWizardPage'
+import AdvancesList from './pages/AdvancesList'
 import Login from './pages/Login'
 import Attendance from './pages/Attendance'
 
@@ -46,6 +47,7 @@ function App() {
               <Route path="sites/:id" element={<SiteProfile />} />
               <Route path="attendance" element={<Attendance />} />
               <Route path="payslips" element={<PayslipsList />} />
+              <Route path="advances" element={<AdvancesList />} />
               <Route path="documents" element={<DocumentsList />} />
               <Route path="contracts" element={<ContractsList />} />
               <Route path="vacations" element={<VacationsList />} />

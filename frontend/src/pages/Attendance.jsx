@@ -34,10 +34,10 @@ export default function Attendance() {
     apiFetch('http://127.0.0.1:8000/api/v1/workers/')
       .then(r => r.json())
       .then(data => {
-        // Filter active workers in this site
-        const siteWorkers = (Array.isArray(data) ? data : []).filter(w => 
-          w.site_id === localFaenaId && w.status === 'active'
-        )
+        const siteWorkers = (Array.isArray(data) ? data : []).filter(w => {
+          const s = (w.status || '').toLowerCase()
+          return w.site_id === localFaenaId && (s === 'active' || s === 'activo')
+        })
         setWorkers(siteWorkers)
       })
       .catch(console.error)
@@ -49,22 +49,40 @@ export default function Attendance() {
     if (!localFaenaId || !date || workers.length === 0) return
     
     setLoading(true)
-    apiFetch(`http://127.0.0.1:8000/api/v1/attendance/${localFaenaId}/${date}`)
-      .then(r => r.json())
-      .then(data => {
+    Promise.all([
+      apiFetch(`http://127.0.0.1:8000/api/v1/attendance/${localFaenaId}/${date}`).then(r => r.json()),
+      apiFetch(`http://127.0.0.1:8000/api/v1/vacaciones/`).then(r => r.json())
+    ])
+      .then(([attendanceData, vacationData]) => {
         const attMap = {}
-        // Inicializar todos los trabajadores con estado vacío si no hay registro
+        const vacationsList = Array.isArray(vacationData) ? vacationData : []
+
+        // 1. Initialize with vacations if active on this day, else empty status
         workers.forEach(w => {
-          attMap[w.id] = { status: '', overtime_hours: 0 }
+          const hasVacation = vacationsList.find(v => 
+            v.worker_id === w.id && 
+            v.estado === 'aprobado' && 
+            v.fecha_inicio <= date && 
+            date <= v.fecha_fin
+          )
+          
+          attMap[w.id] = { 
+            status: hasVacation ? 'Vacaciones' : '', 
+            overtime_hours: 0,
+            isOnVacation: !!hasVacation,
+            vacationDetails: hasVacation
+          }
         })
         
-        // Rellenar con datos de la base de datos
-        if (Array.isArray(data)) {
-          data.forEach(record => {
+        // 2. Rellenar con datos de la base de datos si existen
+        if (Array.isArray(attendanceData)) {
+          attendanceData.forEach(record => {
             if (attMap[record.worker_id]) {
                attMap[record.worker_id] = {
-                 status: record.status,
-                 overtime_hours: record.overtime_hours || 0
+                 status: record.status || attMap[record.worker_id].status,
+                 overtime_hours: record.overtime_hours || 0,
+                 isOnVacation: attMap[record.worker_id].isOnVacation,
+                 vacationDetails: attMap[record.worker_id].vacationDetails
                }
             }
           })
@@ -92,7 +110,10 @@ export default function Attendance() {
   const handleMarkAllPresent = () => {
     const newAtt = { ...attendance }
     workers.forEach(w => {
-      newAtt[w.id] = { ...newAtt[w.id], status: 'Presente' }
+      // Don't overwrite if the worker has an active vacation
+      if (!newAtt[w.id]?.isOnVacation) {
+        newAtt[w.id] = { ...newAtt[w.id], status: 'Presente' }
+      }
     })
     setAttendance(newAtt)
   }
@@ -222,8 +243,21 @@ export default function Attendance() {
           return (
             <MwTr key={w.id}>
               <MwTd>
-                <div style={{ fontSize: 13, fontWeight: 600, color: '#1A1C20' }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: '#1A1C20', display: 'flex', alignItems: 'center', gap: 6 }}>
                   {w.first_name} {w.last_name}
+                  {record.isOnVacation && (
+                    <span style={{ 
+                      fontSize: 10, 
+                      fontWeight: 700, 
+                      color: '#047857', 
+                      backgroundColor: '#D1FAE5', 
+                      padding: '2px 6px', 
+                      borderRadius: 4,
+                      whiteSpace: 'nowrap'
+                    }}>
+                      En Vacaciones
+                    </span>
+                  )}
                 </div>
                 <div style={{ fontSize: 12, color: '#94A3B8' }}>{w.position}</div>
               </MwTd>

@@ -1,11 +1,11 @@
-import { apiFetch } from '../supabaseClient'
+import { apiFetch, API_BASE_URL, supabase } from '../supabaseClient'
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import DocumentModal from '../components/DocumentModal'
 import WorkerEditModal from '../components/WorkerEditModal'
 import DeactivateWorkerModal from '../components/DeactivateWorkerModal'
 import AdvanceModal from '../components/AdvanceModal'
-import { UserMinus, UserCheck, AlertOctagon, ArrowLeft, Briefcase, Download, Edit, User, HeartPulse, ShieldCheck, Wallet, FileText, FileDown, ClipboardList, Banknote } from 'lucide-react'
+import { UserMinus, UserCheck, AlertOctagon, ArrowLeft, Briefcase, Download, Edit, User, HeartPulse, ShieldCheck, Wallet, FileText, FileDown, ClipboardList, Banknote, Trash2 } from 'lucide-react'
 
 // Helper for avatars
 function getInitials(firstName, lastName) {
@@ -22,6 +22,47 @@ export default function WorkerProfile() {
   const [loading, setLoading] = useState(true)
   const [assigningSite, setAssigningSite] = useState(false)
   const [selectedSiteId, setSelectedSiteId] = useState('')
+
+  const [currentUser, setCurrentUser] = useState(null)
+  const [isDeleting, setIsDeleting] = useState(false)
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setCurrentUser(user)
+    })
+  }, [])
+
+  const isAuthorizedToDelete = currentUser && (
+    currentUser.email === 'zedmundofrancisco@gmail.com' || 
+    currentUser.id === 'b1cb200f-ae69-431a-90f6-fbc4d1bea827'
+  )
+
+  const handleDeleteWorker = async () => {
+    const confirmed = window.confirm(
+      `⚠️ ¿ESTÁS COMPLETAMENTE SEGURO DE ELIMINAR A ESTE TRABAJADOR?\n\n` +
+      `Esta acción es IRREVERSIBLE y eliminará permanentemente al trabajador ` +
+      `"${worker.first_name} ${worker.last_name}" junto con toda su información asociada ` +
+      `(asistencia, epp, liquidaciones, finiquitos, contratos y documentos) del software.`
+    )
+    if (!confirmed) return
+    
+    setIsDeleting(true)
+    try {
+      const response = await apiFetch(`http://127.0.0.1:8000/api/v1/workers/${id}`, {
+        method: 'DELETE'
+      })
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || "Error en el servidor al eliminar trabajador.")
+      }
+      alert("El trabajador y toda su información han sido eliminados de manera exitosa y permanente del software.")
+      window.location.href = '/workers'
+    } catch (err) {
+      alert(`Error al eliminar trabajador: ${err.message}`)
+    } finally {
+      setIsDeleting(false)
+    }
+  }
 
   // Modals state
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
@@ -217,6 +258,16 @@ export default function WorkerProfile() {
               </div>
             </div>
             <div className="pt-4 sm:pt-0 pb-2 flex flex-wrap gap-3">
+              {isAuthorizedToDelete && (
+                <button 
+                  onClick={handleDeleteWorker}
+                  disabled={isDeleting}
+                  className="inline-flex items-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-700 disabled:opacity-50"
+                >
+                  <Trash2 className="mr-1.5 h-4 w-4 text-white" /> 
+                  {isDeleting ? 'Eliminando...' : 'Eliminar Ficha'}
+                </button>
+              )}
               {['active', 'activo'].includes((worker.status || '').toLowerCase()) ? (
                 <button 
                   onClick={() => setIsDeactivateModalOpen(true)}
@@ -523,7 +574,7 @@ export default function WorkerProfile() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
                       <a
-                        href={`http://127.0.0.1:8000/api/v1/ppe/receipt/${ppe.id}`}
+                        href={`${API_BASE_URL}/api/v1/ppe/receipt/${ppe.id}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1 text-indigo-600 hover:text-indigo-900 font-medium text-xs border border-indigo-200 rounded-md px-2 py-1 hover:bg-indigo-50 transition-colors"
@@ -547,12 +598,12 @@ export default function WorkerProfile() {
           <h3 className="text-lg font-semibold leading-6 text-gray-900 flex items-center">
             <Banknote className="mr-2 h-5 w-5 text-green-600" /> Anticipos de Sueldo
           </h3>
-          <button 
-            onClick={() => setIsAdvanceModalOpen(true)}
+          <Link 
+            to="/advances"
             className="inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
           >
-            Solicitar Anticipo
-          </button>
+            Gestionar Anticipos
+          </Link>
         </div>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
@@ -591,7 +642,7 @@ export default function WorkerProfile() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 truncate max-w-[200px]" title={adv.reason}>{adv.reason || '-'}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
                       <a
-                        href={`http://127.0.0.1:8000/api/v1/advances/comprobante/${adv.id}`}
+                        href={`${API_BASE_URL}/api/v1/advances/comprobante/${adv.id}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1 text-indigo-600 hover:text-indigo-900 font-medium text-xs border border-indigo-200 rounded-md px-2 py-1 hover:bg-indigo-50 transition-colors"

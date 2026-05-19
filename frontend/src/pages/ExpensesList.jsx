@@ -47,7 +47,7 @@ export default function ExpensesList() {
   }
 
   const fetchSites = () => {
-    apiFetch('/api/v1/sites')
+    apiFetch('/api/v1/sites/')
       .then(r => r.json())
       .then(data => {
         setSites(Array.isArray(data) ? data : [])
