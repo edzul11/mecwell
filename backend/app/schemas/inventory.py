@@ -9,6 +9,8 @@ class InventoryItemBase(BaseModel):
     unit_price: float = 0
     unit_measure: Optional[str] = None
     is_returnable: bool = False
+    minimum_stock: int = 0
+    acquisition_value: float = 0
 
 class InventoryItemCreate(InventoryItemBase):
     pass
@@ -19,6 +21,8 @@ class InventoryItemUpdate(BaseModel):
     unit_price: Optional[float] = None
     unit_measure: Optional[str] = None
     is_returnable: Optional[bool] = None
+    minimum_stock: Optional[int] = None
+    acquisition_value: Optional[float] = None
 
 class InventoryItem(InventoryItemBase):
     id: str

@@ -1,4 +1,4 @@
-from fastapi import Depends, APIRouter, HTTPException, UploadFile, File
+from fastapi import Depends, APIRouter, HTTPException, UploadFile, File, Request
 from typing import List
 import shutil
 import os
@@ -10,13 +10,15 @@ from supabase import Client
 router = APIRouter(prefix="/documents", tags=["Documents"])
 
 @router.post("/upload")
-def upload_file(file: UploadFile = File(...), supabase: Client = Depends(get_db_client)):
+def upload_file(request: Request, file: UploadFile = File(...), supabase: Client = Depends(get_db_client)):
     ext = file.filename.split(".")[-1]
     filename = f"{uuid4()}.{ext}"
     path = f"app/uploads/{filename}"
     with open(path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
-    return {"url": f"http://127.0.0.1:8000/uploads/{filename}"}
+    
+    base_url = str(request.base_url).rstrip('/')
+    return {"url": f"{base_url}/uploads/{filename}"}
 
 @router.get("/")
 def get_documents(supabase: Client = Depends(get_db_client)):

@@ -14,9 +14,10 @@ export const apiFetch = async (url, options = {}) => {
     ...(token ? { 'Authorization': `Bearer ${token}` } : {})
   }
   
-  // Reemplazar la URL base local por la variable de entorno en producción si está definida
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
-  const targetUrl = url.replace(/^http:\/\/(127\.0\.0\.1|localhost):8000/, apiBaseUrl)
+  const targetUrl = url.startsWith('/') 
+    ? `${apiBaseUrl}${url}` 
+    : url.replace(/^http:\/\/(127\.0\.0\.1|localhost):8000/, apiBaseUrl)
   
   return fetch(targetUrl, { ...options, headers })
 }
