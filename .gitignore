@@ -1,0 +1,47 @@
+# Dependency directories
+node_modules/
+jspm_packages/
+web_resources/
+frontend/node_modules/
+frontend/dist/
+
+# Python Virtual Environments & Packages
+.venv/
+venv/
+ENV/
+env/
+backend/.venv/
+backend/venv/
+backend/env/
+*.pyc
+__pycache__/
+.pytest_cache/
+
+# IDEs & System files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Environment variables (Secrets!)
+.env
+.env.local
+.env.production
+.env.development
+*.env
+frontend/.env
+frontend/.env.production
+backend/.env
+
+# Firebase logs & configs
+firebase-debug.log
+.firebase/
+.firebaserc.original
+
+# Agent workspaces
+.agents/
+scratch/
+skills-lock.json
+
+# Custom Python Virtual Environment inside backend/
+backend/camila/
