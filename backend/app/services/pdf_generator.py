@@ -680,3 +680,348 @@ def generate_advance_receipt_pdf(advance: dict, worker: dict) -> bytes:
     doc.build(elements)
     buffer.seek(0)
     return buffer.getvalue()
+
+def generate_quote_pdf(quote: dict) -> bytes:
+    from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=letter,
+                            rightMargin=40, leftMargin=40,
+                            topMargin=40, bottomMargin=40)
+    
+    styles = getSampleStyleSheet()
+    normal = ParagraphStyle('QuoteNormal', parent=styles['Normal'], fontSize=9, fontName='Helvetica', leading=12)
+    normal_bold = ParagraphStyle('QuoteNormalBold', parent=normal, fontName='Helvetica-Bold')
+    normal_center = ParagraphStyle('QuoteNormalCenter', parent=normal, alignment=TA_CENTER)
+    normal_right = ParagraphStyle('QuoteNormalRight', parent=normal, alignment=TA_RIGHT)
+    
+    elements = []
+    
+    # 1. Header (Two columns: Logo/Title & Company details)
+    logo_and_title_text = """
+    <b>COTIZACIÓN DE SERVICIOS</b><br/><br/>
+    <font size="16" color="#1E3A8A"><b>MECWELL LTDA.</b></font><br/>
+    <font size="8" color="#555555">SERVICIOS INTEGRALES E INGENIERÍA</font>
+    """
+    
+    company_details_text = f"""
+    <b>Razón Social:</b> Mecwell Ltda.<br/>
+    <b>RUT:</b> 78.349.631-3<br/>
+    <b>Domicilio:</b> Calbuco 5616 - Antofagasta - Chile<br/>
+    <b>Email:</b> mecwelllimitada@gmail.com<br/>
+    <b>Teléfono:</b> +56 9 3426 1121
+    """
+    
+    header_data = [
+        [Paragraph(logo_and_title_text, normal), Paragraph(company_details_text, normal)]
+    ]
+    
+    header_table = Table(header_data, colWidths=[266, 266])
+    header_table.setStyle(TableStyle([
+        ('VALIGN', (0,0), (-1,-1), 'TOP'),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 10),
+        ('ALIGN', (1,0), (1,0), 'RIGHT'),
+    ]))
+    elements.append(header_table)
+    elements.append(Spacer(1, 10))
+    
+    # 2. Customer Info Table
+    customer_data = [
+        [
+            Paragraph("<b>Cliente:</b>", normal), Paragraph(quote.get('client_name', ''), normal),
+            Paragraph("<b>Contacto:</b>", normal), Paragraph(quote.get('client_contact', '—'), normal)
+        ],
+        [
+            Paragraph("<b>RUT:</b>", normal), Paragraph(quote.get('client_rut', '—'), normal),
+            Paragraph("<b>Área:</b>", normal), Paragraph(quote.get('client_area', '—'), normal)
+        ],
+        [
+            Paragraph("<b>Ciudad/Comuna:</b>", normal), Paragraph(quote.get('client_city', '—'), normal),
+            Paragraph("<b>Email:</b>", normal), Paragraph(quote.get('client_email', '—'), normal)
+        ],
+        [
+            Paragraph("<b>Teléfono:</b>", normal), Paragraph(quote.get('client_phone', '—'), normal),
+            Paragraph("<b>Teléfono Contacto:</b>", normal), Paragraph(quote.get('client_phone', '—'), normal)
+        ]
+    ]
+    
+    customer_table = Table(customer_data, colWidths=[90, 176, 90, 176])
+    customer_table.setStyle(TableStyle([
+        ('BOX', (0,0), (-1,-1), 1, colors.HexColor('#CBD5E1')),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#E2E8F0')),
+        ('BACKGROUND', (0,0), (0,-1), colors.HexColor('#F8FAFC')),
+        ('BACKGROUND', (2,0), (2,-1), colors.HexColor('#F8FAFC')),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('TOPPADDING', (0,0), (-1,-1), 4),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+        ('LEFTPADDING', (0,0), (-1,-1), 6),
+        ('RIGHTPADDING', (0,0), (-1,-1), 6),
+    ]))
+    elements.append(customer_table)
+    elements.append(Spacer(1, 10))
+    
+    # 3. Service Block
+    service_data = [
+        [Paragraph("<b>Número de cotización:</b>", normal_bold), Paragraph(quote.get('quote_number', ''), normal)],
+        [Paragraph("<b>Nombre del servicio:</b>", normal_bold), Paragraph(quote.get('service_name', ''), normal)]
+    ]
+    service_table = Table(service_data, colWidths=[130, 402])
+    service_table.setStyle(TableStyle([
+        ('BOX', (0,0), (-1,-1), 1, colors.HexColor('#94A3B8')),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#CBD5E1')),
+        ('BACKGROUND', (0,0), (0,-1), colors.HexColor('#F1F5F9')),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('TOPPADDING', (0,0), (-1,-1), 6),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 6),
+        ('LEFTPADDING', (0,0), (-1,-1), 8),
+        ('RIGHTPADDING', (0,0), (-1,-1), 8),
+    ]))
+    elements.append(service_table)
+    elements.append(Spacer(1, 15))
+    
+    # helper lists
+    labor_list = quote.get('labor_items', [])
+    material_list = quote.get('material_items', [])
+    equipment_list = quote.get('equipment_items', [])
+    other_list = quote.get('other_expense_items', [])
+    
+    subtotal_labor = sum(float(x.get('total', 0)) for x in labor_list)
+    subtotal_material = sum(float(x.get('total', 0)) for x in material_list)
+    subtotal_equipment = sum(float(x.get('total', 0)) for x in equipment_list)
+    subtotal_other = sum(float(x.get('total', 0)) for x in other_list)
+    
+    # 4. Mano de Obra Table
+    if labor_list:
+        elements.append(Paragraph("<b>Mano de Obra</b>", normal_bold))
+        elements.append(Spacer(1, 4))
+        
+        table_rows = [[
+            Paragraph("<b>Cargo</b>", normal_bold),
+            Paragraph("<b>Unidad</b>", normal_center),
+            Paragraph("<b>Cant.</b>", normal_center),
+            Paragraph("<b>Días</b>", normal_center),
+            Paragraph("<b>HH</b>", normal_center),
+            Paragraph("<b>P. Unitario</b>", normal_right),
+            Paragraph("<b>Total</b>", normal_right)
+        ]]
+        
+        total_hh = 0
+        for item in labor_list:
+            qty = int(item.get('qty', 0))
+            days = int(item.get('days', 0))
+            hh_per_day = float(item.get('hh_per_day', 0))
+            item_hh = qty * days * hh_per_day
+            total_hh += item_hh
+            
+            table_rows.append([
+                Paragraph(item.get('role', ''), normal),
+                Paragraph(item.get('unit', 'HH'), normal_center),
+                Paragraph(f"{qty}", normal_center),
+                Paragraph(f"{days}", normal_center),
+                Paragraph(f"{hh_per_day:g}", normal_center),
+                Paragraph(f"${int(round(float(item.get('unit_price', 0)))):,}", normal_right),
+                Paragraph(f"${int(round(float(item.get('total', 0)))):,}", normal_right)
+            ])
+            
+        table_rows.append([
+            Paragraph("<b>Subtotal</b>", normal_bold),
+            "", "", "",
+            Paragraph(f"<b>{total_hh:g}</b>", normal_center),
+            "",
+            Paragraph(f"<b>${int(round(subtotal_labor)):,}</b>", normal_right)
+        ])
+        
+        t_labor = Table(table_rows, colWidths=[182, 45, 45, 45, 45, 80, 90])
+        t_labor.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#F8FAFC')),
+            ('LINEBELOW', (0,0), (-1,0), 1.5, colors.HexColor('#1E3A8A')),
+            ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#CBD5E1')),
+            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+            ('SPAN', (1, -1), (3, -1)),
+            ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#F8FAFC')),
+            ('LINEABOVE', (0, -1), (-1, -1), 1, colors.HexColor('#1E3A8A')),
+            ('TOPPADDING', (0,0), (-1,-1), 4),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+        ]))
+        elements.append(t_labor)
+        elements.append(Spacer(1, 12))
+        
+    # 5. Materiales Table
+    if material_list:
+        elements.append(Paragraph("<b>Materiales</b>", normal_bold))
+        elements.append(Spacer(1, 4))
+        
+        table_rows = [[
+            Paragraph("<b>Descripción</b>", normal_bold),
+            Paragraph("<b>Unidad</b>", normal_center),
+            Paragraph("<b>Cantidad</b>", normal_center),
+            Paragraph("<b>P. Unitario</b>", normal_right),
+            Paragraph("<b>Total</b>", normal_right)
+        ]]
+        
+        for item in material_list:
+            table_rows.append([
+                Paragraph(item.get('name', ''), normal),
+                Paragraph(item.get('unit', ''), normal_center),
+                Paragraph(f"{float(item.get('qty', 0)):g}", normal_center),
+                Paragraph(f"${int(round(float(item.get('unit_price', 0)))):,}", normal_right),
+                Paragraph(f"${int(round(float(item.get('total', 0)))):,}", normal_right)
+            ])
+            
+        table_rows.append([
+            Paragraph("<b>Subtotal</b>", normal_bold),
+            "", "", "",
+            Paragraph(f"<b>${int(round(subtotal_material)):,}</b>", normal_right)
+        ])
+        
+        t_mat = Table(table_rows, colWidths=[272, 45, 45, 80, 90])
+        t_mat.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#F8FAFC')),
+            ('LINEBELOW', (0,0), (-1,0), 1.5, colors.HexColor('#1E3A8A')),
+            ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#CBD5E1')),
+            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+            ('SPAN', (1, -1), (3, -1)),
+            ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#F8FAFC')),
+            ('LINEABOVE', (0, -1), (-1, -1), 1, colors.HexColor('#1E3A8A')),
+            ('TOPPADDING', (0,0), (-1,-1), 4),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+        ]))
+        elements.append(t_mat)
+        elements.append(Spacer(1, 12))
+        
+    # 6. Equipos Table
+    if equipment_list:
+        elements.append(Paragraph("<b>Equipos y elementos anexos</b>", normal_bold))
+        elements.append(Spacer(1, 4))
+        
+        table_rows = [[
+            Paragraph("<b>Descripción</b>", normal_bold),
+            Paragraph("<b>Unidad</b>", normal_center),
+            Paragraph("<b>Cantidad</b>", normal_center),
+            Paragraph("<b>P. Unitario</b>", normal_right),
+            Paragraph("<b>Total</b>", normal_right)
+        ]]
+        
+        for item in equipment_list:
+            table_rows.append([
+                Paragraph(item.get('name', ''), normal),
+                Paragraph(item.get('unit', ''), normal_center),
+                Paragraph(f"{float(item.get('qty', 0)):g}", normal_center),
+                Paragraph(f"${int(round(float(item.get('unit_price', 0)))):,}", normal_right),
+                Paragraph(f"${int(round(float(item.get('total', 0)))):,}", normal_right)
+            ])
+            
+        table_rows.append([
+            Paragraph("<b>Subtotal</b>", normal_bold),
+            "", "", "",
+            Paragraph(f"<b>${int(round(subtotal_equipment)):,}</b>", normal_right)
+        ])
+        
+        t_equip = Table(table_rows, colWidths=[272, 45, 45, 80, 90])
+        t_equip.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#F8FAFC')),
+            ('LINEBELOW', (0,0), (-1,0), 1.5, colors.HexColor('#1E3A8A')),
+            ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#CBD5E1')),
+            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+            ('SPAN', (1, -1), (3, -1)),
+            ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#F8FAFC')),
+            ('LINEABOVE', (0, -1), (-1, -1), 1, colors.HexColor('#1E3A8A')),
+            ('TOPPADDING', (0,0), (-1,-1), 4),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+        ]))
+        elements.append(t_equip)
+        elements.append(Spacer(1, 12))
+        
+    # 7. Otros Gastos Table
+    if other_list:
+        elements.append(Paragraph("<b>Otros gastos</b>", normal_bold))
+        elements.append(Spacer(1, 4))
+        
+        table_rows = [[
+            Paragraph("<b>Descripción</b>", normal_bold),
+            Paragraph("<b>Unidad</b>", normal_center),
+            Paragraph("<b>Cantidad</b>", normal_center),
+            Paragraph("<b>P. Unitario</b>", normal_right),
+            Paragraph("<b>Total</b>", normal_right)
+        ]]
+        
+        for item in other_list:
+            table_rows.append([
+                Paragraph(item.get('name', ''), normal),
+                Paragraph(item.get('unit', ''), normal_center),
+                Paragraph(f"{float(item.get('qty', 0)):g}", normal_center),
+                Paragraph(f"${int(round(float(item.get('unit_price', 0)))):,}", normal_right),
+                Paragraph(f"${int(round(float(item.get('total', 0)))):,}", normal_right)
+            ])
+            
+        table_rows.append([
+            Paragraph("<b>Subtotal</b>", normal_bold),
+            "", "", "",
+            Paragraph(f"<b>${int(round(subtotal_other)):,}</b>", normal_right)
+        ])
+        
+        t_oth = Table(table_rows, colWidths=[272, 45, 45, 80, 90])
+        t_oth.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#F8FAFC')),
+            ('LINEBELOW', (0,0), (-1,0), 1.5, colors.HexColor('#1E3A8A')),
+            ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#CBD5E1')),
+            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+            ('SPAN', (1, -1), (3, -1)),
+            ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#F8FAFC')),
+            ('LINEABOVE', (0, -1), (-1, -1), 1, colors.HexColor('#1E3A8A')),
+            ('TOPPADDING', (0,0), (-1,-1), 4),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+        ]))
+        elements.append(t_oth)
+        elements.append(Spacer(1, 15))
+        
+    # 8. Summary Calculation & Signature Block
+    costo_directo = subtotal_labor + subtotal_material + subtotal_equipment + subtotal_other
+    
+    overhead_pct = float(quote.get('overhead_percent', 0.15))
+    utility_pct = float(quote.get('utility_percent', 0.15))
+    
+    overhead_amt = costo_directo * overhead_pct
+    utility_amt = costo_directo * utility_pct
+    subtotal_neto = costo_directo + overhead_amt + utility_amt
+    
+    sig_block_text = f"""
+    <br/><br/>
+    ___________________________________<br/>
+    <b>Sergio Farías A.</b><br/>
+    Mecwell Ltda.<br/>
+    Fecha Emisión: {quote.get('issue_date', '')}
+    """
+    
+    calc_rows = [
+        [Paragraph("<b>Costo directo ($)</b>", normal), Paragraph(f"<b>${int(round(costo_directo)):,}</b>", normal_right)],
+        [Paragraph(f"Gastos generales ({overhead_pct*100:g}%)", normal), Paragraph(f"${int(round(overhead_amt)):,}", normal_right)],
+        [Paragraph(f"Utilidades ({utility_pct*100:g}%)", normal), Paragraph(f"${int(round(utility_amt)):,}", normal_right)],
+        [Paragraph("<b>Subtotal Neto ($)</b>", normal_bold), Paragraph(f"<b>${int(round(subtotal_neto)):,}</b>", normal_right)]
+    ]
+    
+    calc_table = Table(calc_rows, colWidths=[150, 100])
+    calc_table.setStyle(TableStyle([
+        ('BOX', (0,0), (-1,-1), 1, colors.HexColor('#E2E8F0')),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#F1F5F9')),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#F8FAFC')),
+        ('LINEABOVE', (0, -1), (-1, -1), 1, colors.HexColor('#1E3A8A')),
+        ('TOPPADDING', (0,0), (-1,-1), 5),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 5),
+        ('LEFTPADDING', (0,0), (-1,-1), 8),
+        ('RIGHTPADDING', (0,0), (-1,-1), 8),
+    ]))
+    
+    footer_data = [
+        [Paragraph(sig_block_text, normal), calc_table]
+    ]
+    footer_table = Table(footer_data, colWidths=[282, 250])
+    footer_table.setStyle(TableStyle([
+        ('VALIGN', (0,0), (-1,-1), 'TOP'),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 10),
+    ]))
+    elements.append(footer_table)
+    
+    doc.build(elements)
+    buffer.seek(0)
+    return buffer.getvalue()

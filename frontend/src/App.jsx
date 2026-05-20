@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { FaenaProvider } from './context/FaenaContext'
+import { ConfirmAlertProvider } from './context/ConfirmAlertContext'
 import Layout from './components/Layout'
 import Dashboard from './pages/Dashboard'
 import WorkersList from './pages/WorkersList'
@@ -12,6 +13,8 @@ import PayslipsList from './pages/PayslipsList'
 import DocumentsList from './pages/DocumentsList'
 import InventoryList from './pages/InventoryList'
 import ExpensesList from './pages/ExpensesList'
+import QuotesList from './pages/QuotesList'
+import QuoteEditor from './pages/QuoteEditor'
 import ContractsList from './pages/ContractsList'
 import VacationsList from './pages/VacationsList'
 import VacationRegistrationPage from './pages/VacationRegistrationPage'
@@ -32,35 +35,40 @@ const ProtectedRoute = () => {
 function App() {
   return (
     <AuthProvider>
-      <FaenaProvider>
-        <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          
-          <Route element={<ProtectedRoute />}>
-            <Route path="/" element={<Layout />}>
-              <Route index element={<Dashboard />} />
-              <Route path="workers" element={<WorkersList />} />
-              <Route path="workers/:id" element={<WorkerProfile />} />
-              <Route path="hiring" element={<Recruitment />} />
-              <Route path="sites" element={<SitesList />} />
-              <Route path="sites/:id" element={<SiteProfile />} />
-              <Route path="attendance" element={<Attendance />} />
-              <Route path="payslips" element={<PayslipsList />} />
-              <Route path="advances" element={<AdvancesList />} />
-              <Route path="documents" element={<DocumentsList />} />
-              <Route path="contracts" element={<ContractsList />} />
-              <Route path="vacations" element={<VacationsList />} />
-              <Route path="vacations/new" element={<VacationRegistrationPage />} />
-              <Route path="finiquitos" element={<FiniquitosList />} />
-              <Route path="finiquitos/new" element={<FiniquitoWizardPage />} />
-              <Route path="inventory" element={<InventoryList />} />
-              <Route path="expenses" element={<ExpensesList />} />
+      <ConfirmAlertProvider>
+        <FaenaProvider>
+          <BrowserRouter>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            
+            <Route element={<ProtectedRoute />}>
+              <Route path="/" element={<Layout />}>
+                <Route index element={<Dashboard />} />
+                <Route path="workers" element={<WorkersList />} />
+                <Route path="workers/:id" element={<WorkerProfile />} />
+                <Route path="hiring" element={<Recruitment />} />
+                <Route path="sites" element={<SitesList />} />
+                <Route path="sites/:id" element={<SiteProfile />} />
+                <Route path="attendance" element={<Attendance />} />
+                <Route path="payslips" element={<PayslipsList />} />
+                <Route path="advances" element={<AdvancesList />} />
+                <Route path="documents" element={<DocumentsList />} />
+                <Route path="contracts" element={<ContractsList />} />
+                <Route path="vacations" element={<VacationsList />} />
+                <Route path="vacations/new" element={<VacationRegistrationPage />} />
+                <Route path="finiquitos" element={<FiniquitosList />} />
+                <Route path="finiquitos/new" element={<FiniquitoWizardPage />} />
+                <Route path="inventory" element={<InventoryList />} />
+                <Route path="expenses" element={<ExpensesList />} />
+                <Route path="quotes" element={<QuotesList />} />
+                <Route path="quotes/new" element={<QuoteEditor />} />
+                <Route path="quotes/edit/:id" element={<QuoteEditor />} />
+              </Route>
             </Route>
-          </Route>
-        </Routes>
-        </BrowserRouter>
-      </FaenaProvider>
+          </Routes>
+          </BrowserRouter>
+        </FaenaProvider>
+      </ConfirmAlertProvider>
     </AuthProvider>
   )
 }

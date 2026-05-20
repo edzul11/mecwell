@@ -11,7 +11,9 @@ export default function Attendance() {
   const activeFaena = faenas.find(f => f.id === localFaenaId)
   
   // Default to today (YYYY-MM-DD)
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0])
+  const today = new Date().toISOString().split('T')[0]
+  const [date, setDate] = useState(today)
+  const isToday = date === today
   const [workers, setWorkers] = useState([])
   const [attendance, setAttendance] = useState({}) // { [workerId]: { status, overtime_hours } }
   const [loading, setLoading] = useState(false)
@@ -94,6 +96,7 @@ export default function Attendance() {
   }, [localFaenaId, date, workers.length])
 
   const handleStatusChange = (workerId, newStatus) => {
+    if (!isToday) return
     setAttendance(prev => ({
       ...prev,
       [workerId]: { ...prev[workerId], status: newStatus }
@@ -101,6 +104,7 @@ export default function Attendance() {
   }
 
   const handleOvertimeChange = (workerId, hours) => {
+    if (!isToday) return
     setAttendance(prev => ({
       ...prev,
       [workerId]: { ...prev[workerId], overtime_hours: hours }
@@ -108,6 +112,7 @@ export default function Attendance() {
   }
 
   const handleMarkAllPresent = () => {
+    if (!isToday) return
     const newAtt = { ...attendance }
     workers.forEach(w => {
       // Don't overwrite if the worker has an active vacation
@@ -119,7 +124,7 @@ export default function Attendance() {
   }
 
   const handleSave = async () => {
-    if (!localFaenaId) return
+    if (!localFaenaId || !isToday) return
     setSaving(true)
     
     const records = workers.map(w => ({
@@ -166,25 +171,57 @@ export default function Attendance() {
             </div>
             <button
               onClick={handleMarkAllPresent}
-              disabled={!localFaenaId || workers.length === 0}
+              disabled={!localFaenaId || workers.length === 0 || !isToday}
               style={{
                 display: 'flex', alignItems: 'center', gap: 6,
                 padding: '9px 15px', borderRadius: 8, border: '1px solid #E2E8F0',
-                backgroundColor: (!localFaenaId || workers.length === 0) ? '#F1F5F9' : '#fff', 
-                fontSize: 13, fontWeight: 600, color: '#334155', 
-                cursor: (!localFaenaId || workers.length === 0) ? 'not-allowed' : 'pointer'
+                backgroundColor: (!localFaenaId || workers.length === 0 || !isToday) ? '#F1F5F9' : '#fff', 
+                fontSize: 13, fontWeight: 600, color: (!localFaenaId || workers.length === 0 || !isToday) ? '#94A3B8' : '#334155', 
+                cursor: (!localFaenaId || workers.length === 0 || !isToday) ? 'not-allowed' : 'pointer'
               }}
             >
-              <CheckCircle2 style={{ width: 16, height: 16, color: (!localFaenaId || workers.length === 0) ? '#94A3B8' : '#059669' }} /> 
+              <CheckCircle2 style={{ width: 16, height: 16, color: (!localFaenaId || workers.length === 0 || !isToday) ? '#94A3B8' : '#059669' }} /> 
               Marcar Todos Presentes
             </button>
-            <PrimaryButton onClick={handleSave} disabled={saving || !localFaenaId || workers.length === 0}>
+            <PrimaryButton onClick={handleSave} disabled={saving || !localFaenaId || workers.length === 0 || !isToday}>
               <Save style={{ width: 16, height: 16 }} />
               {saving ? 'Guardando...' : 'Guardar Asistencia'}
             </PrimaryButton>
           </div>
         }
       />
+
+      {!isToday && (
+        <div style={{
+          backgroundColor: '#FFFBEB', 
+          border: '1px solid #FDE68A', 
+          borderRadius: 12,
+          padding: '16px 20px', 
+          marginBottom: 24, 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: 16,
+          boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+          animation: 'slideDown 0.2s ease-out'
+        }}>
+          <div style={{ 
+            backgroundColor: '#FEF3C7', 
+            padding: 10, 
+            borderRadius: '50%', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center' 
+          }}>
+            <span style={{ fontSize: 20 }}>🔒</span>
+          </div>
+          <div>
+            <p style={{ fontSize: 14, fontWeight: 700, color: '#92400E', margin: 0 }}>Modo de Consulta (Lectura Protegida)</p>
+            <p style={{ fontSize: 13, color: '#B45309', margin: '4px 0 0 0', lineHeight: 1.5 }}>
+              Solo se permite registrar y modificar la asistencia para el día de hoy. Las fechas pasadas y futuras se encuentran protegidas en modo de solo lectura para preservar la integridad del sistema.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Faena Selector (Icon Grid) */}
       <div style={{ marginBottom: 24 }}>
@@ -266,13 +303,15 @@ export default function Attendance() {
                 <select
                   value={record.status}
                   onChange={(e) => handleStatusChange(w.id, e.target.value)}
+                  disabled={!isToday}
                   style={{
                     padding: '6px 12px',
                     borderRadius: 6,
                     border: '1px solid #E2E8F0',
                     fontSize: 13,
                     color: record.status === 'Ausente' ? '#DC2626' : '#334155',
-                    backgroundColor: record.status === 'Ausente' ? '#FEF2F2' : '#fff',
+                    backgroundColor: !isToday ? '#F8FAFC' : (record.status === 'Ausente' ? '#FEF2F2' : '#fff'),
+                    cursor: !isToday ? 'not-allowed' : 'default',
                     outline: 'none',
                     fontWeight: 500
                   }}
@@ -288,6 +327,7 @@ export default function Attendance() {
                   step="0.5"
                   value={record.overtime_hours || ''}
                   onChange={(e) => handleOvertimeChange(w.id, e.target.value)}
+                  disabled={!isToday}
                   placeholder="0"
                   style={{
                     width: 70,
@@ -296,6 +336,8 @@ export default function Attendance() {
                     border: '1px solid #E2E8F0',
                     fontSize: 13,
                     textAlign: 'center',
+                    backgroundColor: !isToday ? '#F8FAFC' : '#fff',
+                    cursor: !isToday ? 'not-allowed' : 'text',
                     outline: 'none'
                   }}
                 />

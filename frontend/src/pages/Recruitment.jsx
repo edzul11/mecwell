@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { apiFetch } from '../supabaseClient'
+import { apiFetch, uploadToSupabaseStorage } from '../supabaseClient'
 import { 
   MwPage, MwCard, MwButton, MwTable, MwTr, MwTd, StatusBadge 
 } from '../components/MecwellUI'
@@ -14,6 +14,10 @@ export default function Recruitment() {
   const [loading, setLoading] = useState(false)
   const [sites, setSites] = useState([])
   const [createdWorker, setCreatedWorker] = useState(null)
+
+  const [birthDay, setBirthDay] = useState('')
+  const [birthMonth, setBirthMonth] = useState('')
+  const [birthYear, setBirthYear] = useState('')
 
   // Step 1: Personal Data
   const [personalData, setPersonalData] = useState({
@@ -105,6 +109,18 @@ export default function Recruitment() {
       .then(data => setSites(Array.isArray(data) ? data : []))
       .catch(console.error)
   }, [])
+
+  // Sync three birth date selectors to personalData.birth_date
+  useEffect(() => {
+    if (birthDay && birthMonth && birthYear) {
+      const dd = String(birthDay).padStart(2, '0')
+      const mm = String(birthMonth).padStart(2, '0')
+      const yyyy = birthYear
+      setPersonalData(prev => ({ ...prev, birth_date: `${yyyy}-${mm}-${dd}` }))
+    } else {
+      setPersonalData(prev => ({ ...prev, birth_date: '' }))
+    }
+  }, [birthDay, birthMonth, birthYear])
 
   // Sync personal/labor details with contract preview when transitioning
   useEffect(() => {
@@ -233,16 +249,11 @@ export default function Recruitment() {
     if (!file || !createdWorker) return
     setDocUploadStatus(prev => ({ ...prev, [type]: 'uploading' }))
     try {
-      const fileData = new FormData()
-      fileData.append('file', file)
+      const fileExt = file.name.split('.').pop()
+      const cleanType = docTypeName.replace(/\s+/g, '')
+      const storagePath = `workers/${createdWorker.id}/${Date.now()}-${cleanType}.${fileExt}`
       
-      const uploadRes = await apiFetch('http://127.0.0.1:8000/api/v1/documents/upload', {
-        method: 'POST',
-        body: fileData
-      })
-      if (!uploadRes.ok) throw new Error('Error subiendo archivo')
-      const uploadJson = await uploadRes.json()
-      const uploadedUrl = uploadJson.url
+      const uploadedUrl = await uploadToSupabaseStorage('documents', storagePath, file)
 
       // Save document record in database linked to this worker
       const response = await apiFetch('http://127.0.0.1:8000/api/v1/documents/', {
@@ -444,7 +455,51 @@ export default function Recruitment() {
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Fecha de Nacimiento</label>
-                  <input type="date" name="birth_date" value={personalData.birth_date} onChange={handlePersonalChange} className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none" />
+                  <div className="grid grid-cols-3 gap-2">
+                    <select
+                      value={birthDay}
+                      onChange={(e) => setBirthDay(e.target.value)}
+                      className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-blue-500"
+                    >
+                      <option value="">Día</option>
+                      {Array.from({ length: 31 }, (_, i) => i + 1).map(d => (
+                        <option key={d} value={d}>{d}</option>
+                      ))}
+                    </select>
+                    <select
+                      value={birthMonth}
+                      onChange={(e) => setBirthMonth(e.target.value)}
+                      className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-blue-500"
+                    >
+                      <option value="">Mes</option>
+                      {[
+                        { val: 1, name: 'Enero' },
+                        { val: 2, name: 'Febrero' },
+                        { val: 3, name: 'Marzo' },
+                        { val: 4, name: 'Abril' },
+                        { val: 5, name: 'Mayo' },
+                        { val: 6, name: 'Junio' },
+                        { val: 7, name: 'Julio' },
+                        { val: 8, name: 'Agosto' },
+                        { val: 9, name: 'Septiembre' },
+                        { val: 10, name: 'Octubre' },
+                        { val: 11, name: 'Noviembre' },
+                        { val: 12, name: 'Diciembre' }
+                      ].map(m => (
+                        <option key={m.val} value={m.val}>{m.name}</option>
+                      ))}
+                    </select>
+                    <select
+                      value={birthYear}
+                      onChange={(e) => setBirthYear(e.target.value)}
+                      className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-blue-500"
+                    >
+                      <option value="">Año</option>
+                      {Array.from({ length: 2026 - 1940 + 1 }, (_, i) => 2026 - i).map(y => (
+                        <option key={y} value={y}>{y}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Estado Civil</label>
@@ -800,7 +855,7 @@ export default function Recruitment() {
               <h3 style={{ fontSize: 24, fontWeight: 800, color: '#1E4D8C' }}>¡Contratación Exitosa!</h3>
               <p style={{ color: '#64748B', marginTop: 8, marginBottom: 32 }}>
                 El perfil de <strong>{personalData.first_name} {personalData.last_name}</strong> se ha registrado correctamente. 
-                Los documentos legales y el contrato de trabajo han sido enlazados exitosamente en la base de datos de <strong>Camila HR</strong>.
+                Los documentos legales y el contrato de trabajo han sido enlazados exitosamente en la base de datos.
               </p>
               
               <div className="flex justify-center gap-4">
@@ -820,6 +875,9 @@ export default function Recruitment() {
                   })
                   setDocuments({ ci: null, examen: null, afp: null, salud: null })
                   setDocUploadStatus({ ci: 'pending', examen: 'pending', afp: 'pending', salud: 'pending' })
+                  setBirthDay('')
+                  setBirthMonth('')
+                  setBirthYear('')
                   setActiveTab('personales')
                 }}>
                   Contratar Otro Trabajador

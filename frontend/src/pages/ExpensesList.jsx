@@ -1,9 +1,11 @@
-import { apiFetch } from '../supabaseClient'
+import { apiFetch, uploadToSupabaseStorage, resolveFileUrl } from '../supabaseClient'
 import { useState, useEffect } from 'react'
 import { Plus, X, ExternalLink, TrendingUp, Filter, FileText, UploadCloud, Calendar, DollarSign, Tag } from 'lucide-react'
 import { PageWrapper, PageHeader, PrimaryButton, MwTable, MwTr, MwTd, Card } from '../components/MecwellUI'
+import { useConfirmAlert } from '../context/ConfirmAlertContext'
 
 export default function ExpensesList() {
+  const { showConfirm, showAlert } = useConfirmAlert()
   const [expenses, setExpenses] = useState([])
   const [sites, setSites] = useState([])
   const [loading, setLoading] = useState(true)
@@ -55,6 +57,17 @@ export default function ExpensesList() {
       .catch(err => console.error(err))
   }
 
+  const handleDownloadFile = async (e, url) => {
+    e.preventDefault()
+    if (!url) return
+    try {
+      const resolved = await resolveFileUrl(url)
+      window.open(resolved, '_blank', 'noopener,noreferrer')
+    } catch (err) {
+      console.error("Error al abrir el comprobante:", err)
+    }
+  }
+
   const handleOpenAdd = () => {
     setIsEdit(false)
     setFormData({
@@ -94,23 +107,16 @@ export default function ExpensesList() {
     if (!file) return
 
     setUploadingFile(true)
-    const fileData = new FormData()
-    fileData.append('file', file)
-
     try {
-      const res = await apiFetch('/api/v1/documents/upload', {
-        method: 'POST',
-        body: fileData
-      })
-      if (res.ok) {
-        const data = await res.json()
-        setFormData(prev => ({ ...prev, receipt_url: data.url }))
-      } else {
-        alert("Error al subir el comprobante.")
-      }
+      const uniqueId = typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15)
+      const sanitizedName = file.name.replace(/\s+/g, '_')
+      const storagePath = `expenses/${uniqueId}/${Date.now()}-${sanitizedName}`
+      
+      const uploadedUrl = await uploadToSupabaseStorage('receipts', storagePath, file)
+      setFormData(prev => ({ ...prev, receipt_url: uploadedUrl }))
     } catch (err) {
       console.error(err)
-      alert("Error en el servidor al subir el archivo.")
+      showAlert("Error", "Error al subir el comprobante a Supabase Storage.", true)
     } finally {
       setUploadingFile(false)
     }
@@ -119,11 +125,11 @@ export default function ExpensesList() {
   const handleSave = async (e) => {
     e.preventDefault()
     if (!formData.site_id) {
-      alert("Por favor seleccione la Faena/Obra asociada al gasto.")
+      showAlert("Validación", "Por favor seleccione la Faena/Obra asociada al gasto.")
       return
     }
     if (formData.amount <= 0) {
-      alert("Por favor ingrese un monto válido mayor a $0.")
+      showAlert("Validación", "Por favor ingrese un monto válido mayor a $0.")
       return
     }
 
@@ -148,25 +154,34 @@ export default function ExpensesList() {
         fetchExpenses()
       } else {
         const errData = await res.json()
-        alert(`Error al guardar: ${errData.detail || 'Error desconocido'}`)
+        showAlert("Error al guardar", `Error al guardar: ${errData.detail || 'Error desconocido'}`, true)
       }
     } catch (err) {
       console.error(err)
-      alert("Error al guardar el gasto.")
+      showAlert("Error", "Error al guardar el gasto.", true)
     }
   }
 
   const handleDelete = async (id) => {
-    if (!window.confirm("¿Está seguro de que desea eliminar este registro de gasto?")) return
+    const confirmed = await showConfirm({
+      title: '⚠️ ¿ELIMINAR REGISTRO?',
+      message: '¿Está seguro de que desea eliminar este registro de gasto? Esta acción no se puede deshacer.',
+      confirmText: 'Eliminar',
+      cancelText: 'Cancelar',
+      isDestructive: true
+    })
+    if (!confirmed) return
+
     try {
       const res = await apiFetch(`/api/v1/expenses/${id}`, { method: 'DELETE' })
       if (res.ok) {
         fetchExpenses()
       } else {
-        alert("Error al eliminar el gasto.")
+        showAlert("Error", "Error al eliminar el gasto.", true)
       }
     } catch (err) {
       console.error(err)
+      showAlert("Error", "Error de conexión al eliminar el gasto.", true)
     }
   }
 
@@ -321,7 +336,7 @@ export default function ExpensesList() {
               <MwTd right>
                 <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center' }}>
                   {exp.receipt_url ? (
-                    <a href={exp.receipt_url} target="_blank" rel="noopener noreferrer"
+                    <a href="#" onClick={(e) => handleDownloadFile(e, exp.receipt_url)}
                       style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 600, color: '#1E4D8C', textDecoration: 'none' }}
                     >
                       <ExternalLink style={{ width: 13, height: 13 }} /> Ver Boleta
@@ -477,7 +492,7 @@ export default function ExpensesList() {
                     <span style={{ fontSize: 11, color: '#065F46', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
                       <FileText style={{ width: 14, height: 14 }} /> Boleta cargada correctamente
                     </span>
-                    <a href={formData.receipt_url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, fontWeight: 700, color: '#1E4D8C', textDecoration: 'none' }}>Ver archivo</a>
+                    <a href="#" onClick={(e) => handleDownloadFile(e, formData.receipt_url)} style={{ fontSize: 11, fontWeight: 700, color: '#1E4D8C', textDecoration: 'none' }}>Ver archivo</a>
                   </div>
                 )}
               </div>

@@ -1,4 +1,4 @@
-import { apiFetch } from '../supabaseClient'
+import { apiFetch, resolveFileUrl } from '../supabaseClient'
 import { useState, useEffect } from 'react'
 import { FileDown, FileText, FolderOpen, Plus, Clock, CheckCircle2, AlertCircle } from 'lucide-react'
 import DocumentModal from '../components/DocumentModal'
@@ -17,6 +17,17 @@ export default function DocumentsList() {
   const [documents, setDocuments] = useState([])
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
+
+  const handleDownloadFile = async (e, url) => {
+    e.preventDefault()
+    if (!url) return
+    try {
+      const resolved = await resolveFileUrl(url)
+      window.open(resolved, '_blank', 'noopener,noreferrer')
+    } catch (err) {
+      console.error("Error al abrir el archivo:", err)
+    }
+  }
 
   useEffect(() => {
     apiFetch('http://127.0.0.1:8000/api/v1/documents/')
@@ -117,7 +128,7 @@ export default function DocumentsList() {
               </MwTd>
               <MwTd right>
                 {doc.file_url ? (
-                  <a href={doc.file_url} target="_blank" rel="noopener noreferrer"
+                  <a href="#" onClick={(e) => handleDownloadFile(e, doc.file_url)}
                     style={{
                       display: 'inline-flex', alignItems: 'center', gap: 5,
                       padding: '5px 12px', borderRadius: 6,

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { apiFetch } from '../supabaseClient'
+import { apiFetch, resolveFileUrl } from '../supabaseClient'
 import { Users, Wallet, Package, TrendingUp, MapPin, ArrowLeft, ChevronRight, ExternalLink, FileText } from 'lucide-react'
 import { PageWrapper, StatusBadge, Card, MwTable, MwTr, MwTd } from '../components/MecwellUI'
 
@@ -13,6 +13,17 @@ const TABS = [
 
 export default function SiteProfile() {
   const { id } = useParams()
+  
+  const handleDownloadFile = async (e, url) => {
+    e.preventDefault()
+    if (!url) return
+    try {
+      const resolved = await resolveFileUrl(url)
+      window.open(resolved, '_blank', 'noopener,noreferrer')
+    } catch (err) {
+      console.error("Error al abrir el comprobante:", err)
+    }
+  }
   const [site, setSite]           = useState(null)
   const [workers, setWorkers]     = useState([])
   const [allWorkers, setAllWorkers] = useState([])
@@ -125,12 +136,37 @@ export default function SiteProfile() {
   return (
     <PageWrapper>
       {/* Breadcrumb */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20, fontSize: 13 }}>
-        <Link to="/sites" style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#64748B', textDecoration: 'none', fontWeight: 500 }}>
-          <ArrowLeft style={{ width: 14, height: 14 }} /> Faenas
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+        <Link to="/sites" style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 8,
+          padding: '6px 12px',
+          borderRadius: '8px',
+          border: '1px solid #E2E8F0',
+          backgroundColor: '#ffffff',
+          color: '#334155',
+          fontSize: '12px',
+          fontWeight: 600,
+          textDecoration: 'none',
+          boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+          transition: 'all 0.15s'
+        }}
+        onMouseEnter={e => {
+          e.currentTarget.style.backgroundColor = '#F8FAFC'
+          e.currentTarget.style.borderColor = '#CBD5E1'
+          e.currentTarget.style.color = '#1E4D8C'
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.backgroundColor = '#ffffff'
+          e.currentTarget.style.borderColor = '#E2E8F0'
+          e.currentTarget.style.color = '#334155'
+        }}
+        >
+          <ArrowLeft style={{ width: 14, height: 14, color: '#64748B' }} /> Volver a Faenas
         </Link>
         <ChevronRight style={{ width: 14, height: 14, color: '#CBD5E1' }} />
-        <span style={{ color: '#1A1C20', fontWeight: 600 }}>{site.name}</span>
+        <span style={{ color: '#1A1C20', fontWeight: 600, fontSize: '13px' }}>{site.name}</span>
       </div>
 
       {/* Header card with tabs */}
@@ -355,7 +391,7 @@ export default function SiteProfile() {
                   </MwTd>
                   <MwTd right>
                     {exp.receipt_url ? (
-                      <a href={exp.receipt_url} target="_blank" rel="noopener noreferrer"
+                      <a href="#" onClick={(e) => handleDownloadFile(e, exp.receipt_url)}
                         style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 600, color: '#1E4D8C', textDecoration: 'none' }}
                       >
                         <ExternalLink style={{ width: 13, height: 13 }} /> Ver Boleta

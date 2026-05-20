@@ -28,7 +28,7 @@ export default function Login() {
   return (
     <div style={{
       minHeight: '100vh', display: 'flex',
-      backgroundColor: '#F4F6F9',
+      backgroundColor: '#eef0f2',
     }}>
       {/* Panel izquierdo — branding */}
       <div style={{
@@ -58,7 +58,7 @@ export default function Login() {
       }}>
         <div style={{ width: '100%', maxWidth: 380 }}>
           <div style={{ marginBottom: 36 }}>
-            <h2 style={{ fontSize: 22, fontWeight: 700, color: '#1A1C20', marginBottom: 6 }}>
+            <h2 style={{ fontSize: 22, fontWeight: 700, color: '#1a1c20', marginBottom: 6 }}>
               Iniciar Sesión
             </h2>
             <p style={{ fontSize: 13, color: '#64748B' }}>
@@ -70,8 +70,8 @@ export default function Login() {
             {error && (
               <div style={{
                 display: 'flex', alignItems: 'flex-start', gap: 10,
-                padding: '12px 16px', borderRadius: 8,
-                backgroundColor: '#FEE2E2', color: '#991B1B', fontSize: 13,
+                padding: '12px 16px', borderRadius: 'var(--radius-card)',
+                backgroundColor: 'var(--color-error-light)', color: 'var(--color-error)', fontSize: 13,
               }}>
                 <AlertCircle style={{ width: 16, height: 16, flexShrink: 0, marginTop: 1 }} />
                 {error}
@@ -90,12 +90,12 @@ export default function Login() {
                   placeholder="usuario@mecwell.cl"
                   style={{
                     width: '100%', padding: '10px 12px 10px 38px',
-                    border: '1px solid #E2E8F0', borderRadius: 8,
+                    border: '1px solid #E2E8F0', borderRadius: 'var(--radius-button)',
                     fontSize: 13, color: '#1A1C20',
                     outline: 'none', transition: 'border 0.15s',
                     backgroundColor: '#fff',
                   }}
-                  onFocus={e => e.target.style.borderColor = '#1E4D8C'}
+                  onFocus={e => e.target.style.borderColor = 'var(--color-primary)'}
                   onBlur={e => e.target.style.borderColor = '#E2E8F0'}
                 />
               </div>
@@ -113,12 +113,12 @@ export default function Login() {
                   placeholder="••••••••"
                   style={{
                     width: '100%', padding: '10px 12px 10px 38px',
-                    border: '1px solid #E2E8F0', borderRadius: 8,
+                    border: '1px solid #E2E8F0', borderRadius: 'var(--radius-button)',
                     fontSize: 13, color: '#1A1C20',
                     outline: 'none', transition: 'border 0.15s',
                     backgroundColor: '#fff',
                   }}
-                  onFocus={e => e.target.style.borderColor = '#1E4D8C'}
+                  onFocus={e => e.target.style.borderColor = 'var(--color-primary)'}
                   onBlur={e => e.target.style.borderColor = '#E2E8F0'}
                 />
               </div>
@@ -129,14 +129,14 @@ export default function Login() {
               disabled={loading}
               style={{
                 width: '100%', padding: '11px',
-                backgroundColor: loading ? '#ffe44d' : '#FFD700',
-                color: '#333333', border: 'none', borderRadius: 8,
+                backgroundColor: loading ? 'var(--color-secondary-container)' : 'var(--color-primary-accent)',
+                color: 'var(--color-primary)', border: 'none', borderRadius: 'var(--radius-button)',
                 fontSize: 14, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer',
                 transition: 'all 0.15s', marginTop: 4,
                 boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
               }}
-              onMouseEnter={e => { if (!loading) { e.currentTarget.style.backgroundColor = '#e6c200'; e.currentTarget.style.transform = 'translateY(-1px)' } }}
-              onMouseLeave={e => { if (!loading) { e.currentTarget.style.backgroundColor = '#FFD700'; e.currentTarget.style.transform = 'none' } }}
+              onMouseEnter={e => { if (!loading) { e.currentTarget.style.backgroundColor = 'var(--color-secondary-container)'; e.currentTarget.style.transform = 'translateY(-1px)' } }}
+              onMouseLeave={e => { if (!loading) { e.currentTarget.style.backgroundColor = 'var(--color-primary-accent)'; e.currentTarget.style.transform = 'none' } }}
             >
               {loading ? 'Verificando...' : 'Ingresar al Sistema'}
             </button>

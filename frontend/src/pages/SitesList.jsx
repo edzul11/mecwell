@@ -4,8 +4,10 @@ import { Link } from 'react-router-dom'
 import { Plus, ChevronRight, MapPin, Users, Trash2 } from 'lucide-react'
 import SiteModal from '../components/SiteModal'
 import { PageWrapper, PageHeader, PrimaryButton, MwTable, MwTr, MwTd, StatusBadge } from '../components/MecwellUI'
+import { useConfirmAlert } from '../context/ConfirmAlertContext'
 
 export default function SitesList() {
+  const { showConfirm, showAlert } = useConfirmAlert()
   const [sites, setSites] = useState([])
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -18,7 +20,13 @@ export default function SitesList() {
   }, [])
 
   const handleDelete = async (siteId, siteName) => {
-    const confirmed = window.confirm(`¿Estás seguro de que deseas eliminar la faena "${siteName}"?\nLos trabajadores no se eliminarán, quedarán desasociados.`);
+    const confirmed = await showConfirm({
+      title: '⚠️ ¿ELIMINAR FAENA?',
+      message: `¿Estás seguro de que deseas eliminar la faena "${siteName}"?\nLos trabajadores no se eliminarán, quedarán desasociados. Esta acción es permanente.`,
+      confirmText: 'Eliminar Faena',
+      cancelText: 'Cancelar',
+      isDestructive: true
+    });
     if (!confirmed) return;
 
     try {
@@ -29,11 +37,11 @@ export default function SitesList() {
         setSites(prev => prev.filter(s => s.id !== siteId));
       } else {
         const errData = await res.json();
-        alert(`Error al eliminar la faena: ${errData.detail || 'Error de servidor'}`);
+        showAlert("Error al eliminar", `Error al eliminar la faena: ${errData.detail || 'Error de servidor'}`, true);
       }
     } catch (err) {
       console.error(err);
-      alert('Error de conexión al eliminar la faena.');
+      showAlert("Error", 'Error de conexión al eliminar la faena.', true);
     }
   };
 

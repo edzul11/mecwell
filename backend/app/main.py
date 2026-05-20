@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from .routes import workers, sites, contracts, payslips, documents, inventory, expenses, ppe, vacaciones, finiquitos, advances, attendance, dashboard
+from .routes import workers, sites, contracts, payslips, documents, inventory, expenses, ppe, vacaciones, finiquitos, advances, attendance, dashboard, quotes
 import os
 
 app = FastAPI(title="Camila RRHH API", version="1.0.0")
@@ -30,6 +30,7 @@ app.include_router(finiquitos.router, prefix="/api/v1")
 app.include_router(advances.router, prefix="/api/v1")
 app.include_router(attendance.router, prefix="/api/v1")
 app.include_router(dashboard.router, prefix="/api/v1")
+app.include_router(quotes.router, prefix="/api/v1")
 
 @app.get("/")
 def read_root():

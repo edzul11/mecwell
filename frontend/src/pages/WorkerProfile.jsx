@@ -1,10 +1,11 @@
-import { apiFetch, API_BASE_URL, supabase } from '../supabaseClient'
+import { apiFetch, API_BASE_URL, supabase, resolveFileUrl } from '../supabaseClient'
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import DocumentModal from '../components/DocumentModal'
 import WorkerEditModal from '../components/WorkerEditModal'
 import DeactivateWorkerModal from '../components/DeactivateWorkerModal'
 import AdvanceModal from '../components/AdvanceModal'
+import { useConfirmAlert } from '../context/ConfirmAlertContext'
 import { UserMinus, UserCheck, AlertOctagon, ArrowLeft, Briefcase, Download, Edit, User, HeartPulse, ShieldCheck, Wallet, FileText, FileDown, ClipboardList, Banknote, Trash2 } from 'lucide-react'
 
 // Helper for avatars
@@ -26,6 +27,9 @@ export default function WorkerProfile() {
   const [currentUser, setCurrentUser] = useState(null)
   const [isDeleting, setIsDeleting] = useState(false)
 
+  // Use global premium custom alert/confirm context
+  const { showConfirm, showAlert } = useConfirmAlert()
+
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       setCurrentUser(user)
@@ -38,12 +42,13 @@ export default function WorkerProfile() {
   )
 
   const handleDeleteWorker = async () => {
-    const confirmed = window.confirm(
-      `⚠️ ¿ESTÁS COMPLETAMENTE SEGURO DE ELIMINAR A ESTE TRABAJADOR?\n\n` +
-      `Esta acción es IRREVERSIBLE y eliminará permanentemente al trabajador ` +
-      `"${worker.first_name} ${worker.last_name}" junto con toda su información asociada ` +
-      `(asistencia, epp, liquidaciones, finiquitos, contratos y documentos) del software.`
-    )
+    const confirmed = await showConfirm({
+      title: '⚠️ ¿ELIMINAR TRABAJADOR?',
+      message: `Esta acción es IRREVERSIBLE y eliminará permanentemente al trabajador "${worker.first_name} ${worker.last_name}" junto con toda su información asociada (asistencia, epp, liquidaciones, finiquitos, contratos y documentos) del software.`,
+      confirmText: 'Eliminar Permanentemente',
+      cancelText: 'Cancelar',
+      isDestructive: true
+    })
     if (!confirmed) return
     
     setIsDeleting(true)
@@ -55,12 +60,23 @@ export default function WorkerProfile() {
         const errorData = await response.json()
         throw new Error(errorData.detail || "Error en el servidor al eliminar trabajador.")
       }
-      alert("El trabajador y toda su información han sido eliminados de manera exitosa y permanente del software.")
+      await showAlert("Éxito", "El trabajador y toda su información han sido eliminados de manera exitosa y permanente del software.")
       window.location.href = '/workers'
     } catch (err) {
-      alert(`Error al eliminar trabajador: ${err.message}`)
+      await showAlert("Error al eliminar", err.message, true)
     } finally {
       setIsDeleting(false)
+    }
+  }
+
+  const handleDownloadFile = async (e, url) => {
+    e.preventDefault()
+    if (!url) return
+    try {
+      const resolved = await resolveFileUrl(url)
+      window.open(resolved, '_blank', 'noopener,noreferrer')
+    } catch (err) {
+      console.error("Error al abrir el archivo:", err)
     }
   }
 
@@ -160,7 +176,7 @@ export default function WorkerProfile() {
       a.click()
       a.remove()
     } catch (err) {
-      alert("Hubo un error al generar el contrato.")
+      showAlert("Error", "Hubo un error al generar el contrato.", true)
       console.error(err)
     }
   }
@@ -179,7 +195,7 @@ export default function WorkerProfile() {
       setSelectedSiteId('')
       setAssigningSite(false)
     } catch {
-      alert('Error al reasignar la faena.')
+      showAlert("Error", "Error al reasignar la faena.", true)
     }
   }
 
@@ -195,7 +211,7 @@ export default function WorkerProfile() {
       setSelectedSiteId('')
       setAssigningSite(false)
     } catch {
-      alert('Error al reactivar al trabajador.')
+      showAlert("Error", "Error al reactivar al trabajador.", true)
     }
   }
 
@@ -222,19 +238,22 @@ export default function WorkerProfile() {
     <div className="space-y-6 max-w-7xl mx-auto pb-10">
       {/* Header Navigation */}
       <div>
-        <Link to="/workers" className="text-sm font-medium text-gray-500 hover:text-indigo-600 flex items-center transition-colors">
-          <ArrowLeft className="mr-1 h-4 w-4" /> Volver a Trabajadores
+        <Link 
+          to="/workers" 
+          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-xs font-semibold text-gray-700 hover:text-gray-900 hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
+        >
+          <ArrowLeft className="h-4 w-4 text-gray-500" /> Volver a Trabajadores
         </Link>
       </div>
 
       {/* Banner / Header Card */}
       <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-200">
-        <div className="h-32 bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-600"></div>
+        <div className="h-32 bg-gradient-to-r from-indigo-600 to-indigo-800"></div>
         <div className="px-4 sm:px-6 lg:px-8 pb-6">
           <div className="relative flex flex-col sm:flex-row justify-between sm:items-end -mt-12 sm:-mt-16">
             <div className="flex items-end">
               <div className="h-24 w-24 sm:h-32 sm:w-32 rounded-full border-4 border-white bg-white shadow-md flex items-center justify-center overflow-hidden">
-                <div className="h-full w-full bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center text-4xl font-bold text-indigo-700">
+                <div className="h-full w-full bg-indigo-50 flex items-center justify-center text-4xl font-bold text-indigo-700">
                   {getInitials(worker.first_name, worker.last_name)}
                 </div>
               </div>
@@ -506,7 +525,7 @@ export default function WorkerProfile() {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{doc.expiration_date}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         {doc.file_url ? (
-                          <a href={doc.file_url} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:text-indigo-900 inline-flex items-center">
+                          <a href="#" onClick={(e) => handleDownloadFile(e, doc.file_url)} className="text-indigo-600 hover:text-indigo-900 inline-flex items-center">
                             <FileDown className="w-4 h-4 mr-1" /> Descargar
                           </a>
                         ) : (

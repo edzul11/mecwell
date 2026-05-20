@@ -1,6 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import {
-  LogOut, ChevronDown, Globe, Building2, TreePalm, FileX, LayoutDashboard, Users, UserPlus, HardHat, FileText, FileSignature, Wallet, Package, Receipt, Calendar, Banknote
+  LogOut, ChevronDown, Globe, Building2, TreePalm, FileX, LayoutDashboard, Users, UserPlus, HardHat, FileText, FileSignature, Wallet, Package, Receipt, Calendar, Banknote, FileSpreadsheet
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useFaena } from '../context/FaenaContext'
@@ -45,6 +45,7 @@ const navigationGroups = [
     items: [
       { name: 'Inventario',    href: '/inventory', icon: Package         },
       { name: 'Gastos',        href: '/expenses',  icon: Receipt         },
+      { name: 'Cotizaciones',  href: '/quotes',    icon: FileSpreadsheet },
     ]
   }
 ]
@@ -61,22 +62,22 @@ export default function Sidebar() {
       width: 256,
       minHeight: '100vh',
       backgroundColor: '#ffffff',
-      borderRight: '1px solid #E2E8F0',
+      borderRight: '1px solid var(--color-border)',
       display: 'flex',
       flexDirection: 'column',
       flexShrink: 0,
     }}>
 
       {/* Logo */}
-      <div style={{ padding: '24px 24px 20px', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'center' }}>
+      <div style={{ padding: '24px 24px 20px', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'center' }}>
         <div className="flex items-center gap-2.5">
           <img src={mecwellLogo} alt="Mecwell Logo" style={{ maxHeight: 75, maxWidth: '100%', objectFit: 'contain' }} />
         </div>
       </div>
 
       {/* Selector de Faena */}
-      <div style={{ padding: '16px 16px 12px', borderBottom: '1px solid #F1F5F9', position: 'relative' }}>
-        <p style={{ fontSize: 10, fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8, paddingLeft: 4 }}>
+      <div style={{ padding: '16px 16px 12px', borderBottom: '1px solid var(--color-border)', position: 'relative' }}>
+        <p style={{ fontSize: 10, fontWeight: 700, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8, paddingLeft: 4 }}>
           Faena Activa
         </p>
         <button
@@ -85,8 +86,8 @@ export default function Sidebar() {
             width: '100%',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             padding: '9px 12px',
-            backgroundColor: activeFaena ? '#EFF6FF' : '#F8FAFC',
-            border: `1px solid ${activeFaena ? '#BFDBFE' : '#E2E8F0'}`,
+            backgroundColor: activeFaena ? 'rgba(30, 77, 140, 0.05)' : '#ffffff',
+            border: `1px solid ${activeFaena ? 'var(--color-secondary)' : 'var(--color-border)'}`,
             borderRadius: 8,
             cursor: 'pointer',
             transition: 'all 0.15s',
@@ -96,17 +97,17 @@ export default function Sidebar() {
             {activeFaena ? (
               <>
                 <span style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: '#059669', flexShrink: 0 }} />
-                <span style={{ fontSize: 12, fontWeight: 600, color: '#1E4D8C', truncate: true }}>{activeFaena.name}</span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-text)', truncate: true }}>{activeFaena.name}</span>
               </>
             ) : (
               <>
-                <Globe style={{ width: 14, height: 14, color: '#64748B', flexShrink: 0 }} />
-                <span style={{ fontSize: 12, fontWeight: 500, color: '#64748B' }}>Vista Global</span>
+                <Globe style={{ width: 14, height: 14, color: 'var(--color-text-secondary)', flexShrink: 0 }} />
+                <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--color-text-secondary)' }}>Vista Global</span>
               </>
             )}
           </div>
           <ChevronDown style={{
-            width: 14, height: 14, color: '#94A3B8', flexShrink: 0,
+            width: 14, height: 14, color: 'var(--color-text-secondary)', flexShrink: 0,
             transform: dropdownOpen ? 'rotate(180deg)' : 'none',
             transition: 'transform 0.15s'
           }} />
@@ -115,10 +116,10 @@ export default function Sidebar() {
         {dropdownOpen && (
           <div style={{
             position: 'absolute', left: 16, right: 16, top: '100%',
-            backgroundColor: '#fff',
-            border: '1px solid #E2E8F0',
+            backgroundColor: '#ffffff',
+            border: '1px solid var(--color-border)',
             borderRadius: 10,
-            boxShadow: '0 8px 24px rgba(30,77,140,0.12)',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.08)',
             zIndex: 100,
             overflow: 'hidden',
           }}>
@@ -129,15 +130,17 @@ export default function Sidebar() {
                 padding: '10px 14px',
                 display: 'flex', alignItems: 'center', gap: 8,
                 fontSize: 13, fontWeight: !activeFaenaId ? 600 : 400,
-                color: !activeFaenaId ? '#1E4D8C' : '#64748B',
-                backgroundColor: !activeFaenaId ? '#EFF6FF' : 'transparent',
+                color: !activeFaenaId ? 'var(--color-secondary)' : 'var(--color-text-secondary)',
+                backgroundColor: !activeFaenaId ? 'rgba(30, 77, 140, 0.05)' : 'transparent',
                 border: 'none', cursor: 'pointer',
               }}
+              onMouseEnter={e => e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.02)'}
+              onMouseLeave={e => e.currentTarget.style.backgroundColor = !activeFaenaId ? 'rgba(30, 77, 140, 0.05)' : 'transparent'}
             >
               <Globe style={{ width: 14, height: 14 }} />
               Vista Global (Todas)
             </button>
-            <div style={{ height: 1, backgroundColor: '#F1F5F9' }} />
+            <div style={{ height: 1, backgroundColor: 'var(--color-border)' }} />
             {faenas.map(f => (
               <button
                 key={f.id}
@@ -147,21 +150,23 @@ export default function Sidebar() {
                   padding: '10px 14px',
                   display: 'flex', alignItems: 'center', gap: 8,
                   fontSize: 13, fontWeight: activeFaenaId === f.id ? 600 : 400,
-                  color: activeFaenaId === f.id ? '#1E4D8C' : '#374151',
-                  backgroundColor: activeFaenaId === f.id ? '#EFF6FF' : 'transparent',
+                  color: activeFaenaId === f.id ? 'var(--color-secondary)' : 'var(--color-text)',
+                  backgroundColor: activeFaenaId === f.id ? 'rgba(30, 77, 140, 0.05)' : 'transparent',
                   border: 'none', cursor: 'pointer',
                 }}
+                onMouseEnter={e => e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.02)'}
+                onMouseLeave={e => e.currentTarget.style.backgroundColor = activeFaenaId === f.id ? 'rgba(30, 77, 140, 0.05)' : 'transparent'}
               >
                 <span style={{
                   width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
                   backgroundColor: f.status === 'active' ? '#059669' : '#CBD5E1'
                 }} />
-                <span style={{ flex: 1 }}>{f.name}</span>
-                {f.location && <span style={{ fontSize: 11, color: '#CBD5E1' }}>{f.location}</span>}
+                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</span>
+                {f.location && <span style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>{f.location}</span>}
               </button>
             ))}
             {faenas.length === 0 && (
-              <p style={{ padding: '10px 14px', fontSize: 12, color: '#94A3B8', fontStyle: 'italic' }}>Sin faenas registradas</p>
+              <p style={{ padding: '10px 14px', fontSize: 12, color: 'var(--color-text-secondary)', fontStyle: 'italic' }}>Sin faenas registradas</p>
             )}
           </div>
         )}
@@ -176,7 +181,7 @@ export default function Sidebar() {
                 padding: '0 12px', 
                 fontSize: 10, 
                 fontWeight: 700, 
-                color: '#94A3B8', 
+                color: 'var(--color-text-secondary)', 
                 textTransform: 'uppercase', 
                 letterSpacing: '0.05em',
                 marginBottom: 4
@@ -199,12 +204,12 @@ export default function Sidebar() {
                       borderRadius: 8,
                       textDecoration: 'none',
                       fontSize: 13,
-                      fontWeight: isActive ? 600 : 500,
-                      color: isActive ? '#1E4D8C' : '#475569',
-                      backgroundColor: isActive ? '#EFF6FF' : 'transparent',
+                      fontWeight: isActive ? 700 : 500,
+                      color: isActive ? '#1a1d20' : 'var(--color-text-secondary)',
+                      backgroundColor: isActive ? 'var(--color-secondary-container)' : 'transparent',
                       transition: 'all 0.15s',
                     })}
-                    className={({ isActive }) => !isActive ? 'hover:bg-slate-50 hover:text-gray-800' : ''}
+                    className={({ isActive }) => !isActive ? 'hover:bg-gray-100 hover:text-gray-900' : ''}
                   >
                     <Icon style={{ width: 17, height: 17, flexShrink: 0 }} />
                     {item.name}
@@ -217,22 +222,22 @@ export default function Sidebar() {
       </nav>
 
       {/* User / Footer */}
-      <div style={{ borderTop: '1px solid #F1F5F9', padding: '14px 16px' }}>
+      <div style={{ borderTop: '1px solid var(--color-border)', padding: '14px 16px' }}>
         <div className="flex items-center gap-3 mb-3">
           <div style={{
             width: 34, height: 34, borderRadius: '50%',
-            backgroundColor: '#1E4D8C',
+            backgroundColor: 'var(--color-secondary-container)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 13, fontWeight: 700, color: '#fff', flexShrink: 0,
+            fontSize: 13, fontWeight: 700, color: '#1a1d20', flexShrink: 0,
           }}>
             {initials}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ fontSize: 12, fontWeight: 600, color: '#1A1C20', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {user?.email?.split('@')[0] || 'Usuario'}
             </p>
             {activeFaena && (
-              <p style={{ fontSize: 11, color: '#059669', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <p style={{ fontSize: 11, color: 'var(--color-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500 }}>
                 {activeFaena.name}
               </p>
             )}
@@ -244,10 +249,10 @@ export default function Sidebar() {
           style={{
             padding: '8px 10px', borderRadius: 8, border: 'none', cursor: 'pointer',
             backgroundColor: 'transparent', fontSize: 12, fontWeight: 500,
-            color: '#94A3B8', transition: 'all 0.15s',
+            color: 'var(--color-text-secondary)', transition: 'all 0.15s',
           }}
-          onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#FEE2E2'; e.currentTarget.style.color = '#DC2626' }}
-          onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#94A3B8' }}
+          onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'rgba(220, 38, 38, 0.1)'; e.currentTarget.style.color = '#dc2626' }}
+          onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'var(--color-text-secondary)' }}
         >
           <LogOut style={{ width: 15, height: 15 }} />
           Cerrar Sesión

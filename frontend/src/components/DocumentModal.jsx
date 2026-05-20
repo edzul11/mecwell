@@ -1,4 +1,4 @@
-import { apiFetch } from '../supabaseClient'
+import { apiFetch, uploadToSupabaseStorage } from '../supabaseClient'
 import { useState, useEffect } from 'react'
 import { X, UploadCloud } from 'lucide-react'
 
@@ -44,16 +44,11 @@ export default function DocumentModal({ isOpen, onClose, onSave, defaultWorkerId
       
       // Upload file first if exists
       if (file) {
-        const fileData = new FormData()
-        fileData.append('file', file)
+        const fileExt = file.name.split('.').pop()
+        const cleanType = formData.document_type.replace(/\s+/g, '')
+        const storagePath = `workers/${formData.worker_id}/${Date.now()}-${cleanType}.${fileExt}`
         
-        const uploadRes = await apiFetch('http://127.0.0.1:8000/api/v1/documents/upload', {
-          method: 'POST',
-          body: fileData
-        })
-        if (!uploadRes.ok) throw new Error('Error subiendo archivo')
-        const uploadJson = await uploadRes.json()
-        uploadedUrl = uploadJson.url
+        uploadedUrl = await uploadToSupabaseStorage('documents', storagePath, file)
       }
 
       // Save document record

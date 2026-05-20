@@ -2,8 +2,10 @@ import { apiFetch } from '../supabaseClient'
 import { useState, useEffect } from 'react'
 import { Plus, X, Package, AlertTriangle, ArrowRight, Wrench, ShieldAlert } from 'lucide-react'
 import { PageWrapper, PageHeader, PrimaryButton, MwTable, MwTr, MwTd, StatusBadge, Card } from '../components/MecwellUI'
+import { useConfirmAlert } from '../context/ConfirmAlertContext'
 
 export default function InventoryList() {
+  const { showConfirm, showAlert } = useConfirmAlert()
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedCategory, setSelectedCategory] = useState('ALL')
@@ -75,7 +77,7 @@ export default function InventoryList() {
   const handleSave = async (e) => {
     e.preventDefault()
     if (!formData.name) {
-      alert("Por favor ingrese un nombre para el ítem.")
+      showAlert("Validación", "Por favor ingrese un nombre para el ítem.")
       return
     }
 
@@ -93,25 +95,34 @@ export default function InventoryList() {
         fetchItems()
       } else {
         const errData = await res.json()
-        alert(`Error al guardar: ${errData.detail || 'Error desconocido'}`)
+        showAlert("Error al guardar", `Error al guardar: ${errData.detail || 'Error desconocido'}`, true)
       }
     } catch (err) {
       console.error(err)
-      alert("Error al intentar guardar el ítem.")
+      showAlert("Error", "Error al intentar guardar el ítem.", true)
     }
   }
 
   const handleDelete = async (id) => {
-    if (!window.confirm("¿Está seguro de que desea eliminar este ítem del inventario?")) return
+    const confirmed = await showConfirm({
+      title: '⚠️ ¿ELIMINAR ÍTEM?',
+      message: '¿Está seguro de que desea eliminar este ítem del inventario? Esta acción no se puede deshacer.',
+      confirmText: 'Eliminar',
+      cancelText: 'Cancelar',
+      isDestructive: true
+    })
+    if (!confirmed) return
+
     try {
       const res = await apiFetch(`/api/v1/inventory/items/${id}`, { method: 'DELETE' })
       if (res.ok) {
         fetchItems()
       } else {
-        alert("No se pudo eliminar el ítem.")
+        showAlert("Error", "No se pudo eliminar el ítem.", true)
       }
     } catch (err) {
       console.error(err)
+      showAlert("Error", "Error de conexión al eliminar el ítem.", true)
     }
   }
 

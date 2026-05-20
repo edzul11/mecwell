@@ -4,14 +4,14 @@ import { Users, Building2, FileWarning, Wallet, Clock, UserPlus, FileText, Shiel
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import { useFaena } from '../context/FaenaContext'
 
-const STEEL_BLUE = '#1E4D8C'
+const STEEL_BLUE = '#1e4d8c'
 
 // Badge de estado reutilizable
 function StatusBadge({ status }) {
   const config = {
-    vigente:        { bg: '#D1FAE5', text: '#065F46', label: 'Vigente' },
-    'por vencer':   { bg: '#FEF3C7', text: '#92400E', label: 'Por Vencer' },
-    vencido:        { bg: '#FEE2E2', text: '#991B1B', label: 'Vencido' },
+    vigente:        { bg: '#d1fae5', text: '#059669', label: 'Vigente' },
+    'por vencer':   { bg: '#fffbeb', text: '#b7791f', label: 'Por Vencer' },
+    vencido:        { bg: '#fee2ee', text: '#dc2626', label: 'Vencido' },
   }
   const c = config[status] || config['vigente']
   return (
@@ -105,32 +105,32 @@ export default function Dashboard() {
       value: loading ? '—' : totalWorkers,
       sub: activeFaenaId ? 'En esta faena' : 'En todas las faenas',
       icon: Users,
-      accent: STEEL_BLUE,
-      accentLight: '#EFF6FF',
+      accent: '#f5b000',
+      accentLight: '#fffbe6',
     },
     {
       label: 'Faenas Activas',
       value: loading ? '—' : totalSites,
       sub: activeFaenaId ? 'Faena seleccionada' : `${totalSites} en ejecución`,
       icon: Building2,
-      accent: '#059669',
-      accentLight: '#D1FAE5',
+      accent: '#1e4d8c',
+      accentLight: '#f0f4fa',
     },
     {
       label: 'Nómina Estimada',
       value: loading ? '—' : `$${totalPayroll.toLocaleString('es-CL')}`,
       sub: 'Sueldos base totales',
       icon: Wallet,
-      accent: '#7C3AED',
-      accentLight: '#EDE9FE',
+      accent: '#1e4d8c',
+      accentLight: '#f0f4fa',
     },
     {
       label: 'Documentos por Vencer',
       value: loading ? '—' : expiringDocs,
       sub: 'Próximos 30 días',
       icon: FileWarning,
-      accent: expiringDocs > 0 ? '#DC2626' : '#059669',
-      accentLight: expiringDocs > 0 ? '#FEE2E2' : '#D1FAE5',
+      accent: expiringDocs > 0 ? '#dc2626' : '#1e4d8c',
+      accentLight: expiringDocs > 0 ? '#ffebee' : '#f0f4fa',
     },
   ]
 
@@ -165,7 +165,8 @@ export default function Dashboard() {
   }
 
   const getBgColor = (color) => {
-    if (color === '#1E4D8C' || color === STEEL_BLUE) return '#EFF6FF'
+    if (color === '#1e4d8c' || color === STEEL_BLUE) return '#f0f4fa'
+    if (color === '#f5b000' || color === '#ffd700') return '#fffbe6'
     if (color === '#7C3AED') return '#EDE9FE'
     if (color === '#059669') return '#D1FAE5'
     if (color === '#D97706') return '#FEF3C7'
@@ -191,14 +192,14 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="p-8 space-y-8" style={{ backgroundColor: '#F4F6F9', minHeight: '100%' }}>
+    <div className="p-8 space-y-8" style={{ backgroundColor: 'var(--color-surface-container)', minHeight: '100%' }}>
 
       {/* Header */}
       <div>
-        <h1 style={{ fontSize: 24, fontWeight: 700, color: '#1A1C20', marginBottom: 4 }}>
+        <h1 style={{ fontSize: 24, fontWeight: 700, color: 'var(--color-text)', marginBottom: 4 }}>
           Resumen General
         </h1>
-        <p style={{ fontSize: 14, color: '#64748B' }}>
+        <p style={{ fontSize: 14, color: 'var(--color-text-secondary)' }}>
           {activeFaena ? `Vista Filtrada · ${activeFaena.name}` : 'Vista Global · Todas las Faenas'}
         </p>
       </div>
@@ -210,8 +211,8 @@ export default function Dashboard() {
             key={card.label}
             style={{
               backgroundColor: '#fff',
-              borderRadius: 12,
-              boxShadow: '0 1px 3px rgba(30,77,140,0.06)',
+              borderRadius: 'var(--radius-card)',
+              boxShadow: '0 1px 3px rgba(51,52,52,0.06)',
               overflow: 'hidden',
               borderTop: `4px solid ${card.accent}`,
               padding: '20px 24px',
@@ -239,15 +240,15 @@ export default function Dashboard() {
       <div className="grid grid-cols-5 gap-6">
 
         {/* Bar chart */}
-        <div style={{ gridColumn: 'span 3', backgroundColor: '#fff', borderRadius: 12, boxShadow: '0 1px 3px rgba(30,77,140,0.06)', padding: '24px' }}>
+        <div style={{ gridColumn: 'span 3', backgroundColor: '#fff', borderRadius: 'var(--radius-card)', boxShadow: '0 1px 3px rgba(51,52,52,0.06)', padding: '24px' }}>
           <div className="flex items-center justify-between mb-5">
             <div>
-              <h2 style={{ fontSize: 15, fontWeight: 600, color: '#1A1C20' }}>Trabajadores por Faena</h2>
-              <p style={{ fontSize: 12, color: '#94A3B8', marginTop: 2 }}>Distribución actual del personal</p>
+              <h2 style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-text)' }}>Trabajadores por Faena</h2>
+              <p style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 2 }}>Distribución actual del personal</p>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <TrendingUp style={{ width: 16, height: 16, color: STEEL_BLUE }} />
-              <span style={{ fontSize: 12, color: STEEL_BLUE, fontWeight: 600 }}>{totalWorkers} total</span>
+              <TrendingUp style={{ width: 16, height: 16, color: 'var(--color-primary-dark)' }} />
+              <span style={{ fontSize: 12, color: 'var(--color-primary-dark)', fontWeight: 600 }}>{totalWorkers} total</span>
             </div>
           </div>
           <div style={{ height: 200 }}>
@@ -256,14 +257,14 @@ export default function Dashboard() {
                 <BarChart data={workersBySite} layout="vertical" barSize={20}>
                   <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#F1F5F9" />
                   <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94A3B8' }} />
-                  <YAxis type="category" dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748B', fontWeight: 500 }} width={80} />
+                  <YAxis type="category" dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--color-text-secondary)', fontWeight: 500 }} width={80} />
                   <Tooltip
                     formatter={(v) => [`${v} trabajadores`, '']}
-                    contentStyle={{ borderRadius: 8, border: '1px solid #E2E8F0', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', fontSize: 13 }}
+                    contentStyle={{ borderRadius: 8, border: '1px solid var(--color-border)', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', fontSize: 13 }}
                   />
-                  <Bar dataKey="count" radius={[0, 6, 6, 0]}>
+                  <Bar dataKey="count" radius={[0, 4, 4, 0]}>
                     {workersBySite.map((_, i) => (
-                      <Cell key={i} fill={i === 0 ? STEEL_BLUE : i === 1 ? '#3B82F6' : '#93C5FD'} />
+                      <Cell key={i} fill={i === 0 ? '#f5b000' : i === 1 ? '#1e4d8c' : '#bdd0e7'} />
                     ))}
                   </Bar>
                 </BarChart>
@@ -278,8 +279,8 @@ export default function Dashboard() {
         </div>
 
         {/* Activity feed */}
-        <div style={{ gridColumn: 'span 2', backgroundColor: '#fff', borderRadius: 12, boxShadow: '0 1px 3px rgba(30,77,140,0.06)', padding: '24px' }}>
-          <h2 style={{ fontSize: 15, fontWeight: 600, color: '#1A1C20', marginBottom: 20 }}>Últimas Actividades</h2>
+        <div style={{ gridColumn: 'span 2', backgroundColor: '#fff', borderRadius: 'var(--radius-card)', boxShadow: '0 1px 3px rgba(51,52,52,0.06)', padding: '24px' }}>
+          <h2 style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-text)', marginBottom: 20 }}>Últimas Actividades</h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {loadingActivities ? (
               <div className="flex flex-col items-center justify-center py-8">
@@ -314,10 +315,10 @@ export default function Dashboard() {
       </div>
 
       {/* Vencimientos table */}
-      <div style={{ backgroundColor: '#fff', borderRadius: 12, boxShadow: '0 1px 3px rgba(30,77,140,0.06)', overflow: 'hidden' }}>
-        <div style={{ padding: '20px 24px', borderBottom: '1px solid #F1F5F9' }}>
-          <h2 style={{ fontSize: 15, fontWeight: 600, color: '#1A1C20' }}>Próximos Vencimientos de Documentos</h2>
-          <p style={{ fontSize: 12, color: '#94A3B8', marginTop: 2 }}>Documentos que vencen en los próximos 30 días o ya vencidos</p>
+      <div style={{ backgroundColor: '#fff', borderRadius: 'var(--radius-card)', boxShadow: '0 1px 3px rgba(51,52,52,0.06)', overflow: 'hidden' }}>
+        <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--color-border)' }}>
+          <h2 style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-text)' }}>Próximos Vencimientos de Documentos</h2>
+          <p style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 2 }}>Documentos que vencen en los próximos 30 días o ya vencidos</p>
         </div>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
