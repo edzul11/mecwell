@@ -682,26 +682,433 @@ def generate_advance_receipt_pdf(advance: dict, worker: dict) -> bytes:
     return buffer.getvalue()
 
 def generate_quote_pdf(quote: dict) -> bytes:
-    from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
-    buffer = io.BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=letter,
-                            rightMargin=40, leftMargin=40,
-                            topMargin=40, bottomMargin=40)
-    
-    styles = getSampleStyleSheet()
-    normal = ParagraphStyle('QuoteNormal', parent=styles['Normal'], fontSize=9, fontName='Helvetica', leading=12)
-    normal_bold = ParagraphStyle('QuoteNormalBold', parent=normal, fontName='Helvetica-Bold')
-    normal_center = ParagraphStyle('QuoteNormalCenter', parent=normal, alignment=TA_CENTER)
-    normal_right = ParagraphStyle('QuoteNormalRight', parent=normal, alignment=TA_RIGHT)
-    
-    elements = []
-    
-    # 1. Header (Two columns: Logo/Title & Company details)
-    logo_and_title_text = """
-    <b>COTIZACIÓN DE SERVICIOS</b><br/><br/>
-    <font size="16" color="#1E3A8A"><b>MECWELL LTDA.</b></font><br/>
-    <font size="8" color="#555555">SERVICIOS INTEGRALES E INGENIERÍA</font>
+    """Genera una cotización PDF profesional con logo, formato oficial Mecwell y fórmula
+    de markup idéntica al Excel: gastos = %(costo-equipos), utilidades = %(costo+gastos-equipos).
     """
+    from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT, TA_JUSTIFY
+    from reportlab.platypus import Image, HRFlowable, KeepTogether
+    from reportlab.lib.units import mm
+    import os
+
+    # ── Page setup ─────────────────────────────────────────────────────────
+    buffer = io.BytesIO()
+    PAGE_W, PAGE_H = letter          # 612 x 792 pts
+    MARGIN = 40
+    CONTENT_W = PAGE_W - 2 * MARGIN  # 532 pts
+
+    doc = SimpleDocTemplate(
+        buffer, pagesize=letter,
+        rightMargin=MARGIN, leftMargin=MARGIN,
+        topMargin=MARGIN, bottomMargin=MARGIN
+    )
+
+    # ── Color palette ──────────────────────────────────────────────────────
+    NAVY    = colors.HexColor('#1E3A8A')
+    NAVY_LT = colors.HexColor('#2D4EAA')
+    STEEL   = colors.HexColor('#64748B')
+    SLATE   = colors.HexColor('#F1F5F9')
+    BORDER  = colors.HexColor('#CBD5E1')
+    WHITE   = colors.white
+    GREEN   = colors.HexColor('#065F46')
+    RED_LT  = colors.HexColor('#DC2626')
+
+    # ── Styles ─────────────────────────────────────────────────────────────
+    styles = getSampleStyleSheet()
+    def sty(name, **kw):
+        return ParagraphStyle(name, parent=styles['Normal'], fontName='Helvetica',
+                               fontSize=9, leading=12, **kw)
+    def bsty(name, **kw):
+        return ParagraphStyle(name, parent=styles['Normal'], fontName='Helvetica-Bold',
+                               fontSize=9, leading=12, **kw)
+
+    N    = sty('N')
+    NB   = bsty('NB')
+    NC   = sty('NC',  alignment=TA_CENTER)
+    NR   = sty('NR',  alignment=TA_RIGHT)
+    NCB  = bsty('NCB', alignment=TA_CENTER)
+    NRB  = bsty('NRB', alignment=TA_RIGHT)
+    TINY = sty('TINY', fontSize=7.5, textColor=STEEL)
+    TINYR = sty('TINYR', fontSize=7.5, textColor=STEEL, alignment=TA_RIGHT)
+
+    elements = []
+
+    # ── 1. HEADER: Logo + empresa + datos del folio ────────────────────────
+    LOGO_PATH = os.path.join(os.path.dirname(__file__), '..', 'assets', 'mecwell_logo.png')
+
+    logo_cell = ''
+    if os.path.exists(LOGO_PATH):
+        img = Image(LOGO_PATH)
+        img.drawWidth  = 2.1 * inch
+        img.drawHeight = 0.9 * inch
+        logo_cell = img
+    else:
+        logo_cell = Paragraph('<b><font size="14" color="#1E3A8A">MECWELL LTDA.</font></b>', NB)
+
+    company_info = Paragraph(
+        '<font size="7" color="#64748B">'
+        '<b>MECWELL LIMITADA</b><br/>'
+        'RUT: 78.349.631-3<br/>'
+        'Calbuco 5616, Antofagasta, Chile<br/>'
+        'mecwelllimitada@gmail.com | +56 9 3426 1121'
+        '</font>',
+        sty('CI', alignment=TA_RIGHT, fontSize=8, leading=11)
+    )
+
+    quote_badge = Paragraph(
+        f'<font size="22" color="#1E3A8A"><b>COTIZACIÓN</b></font><br/>'
+        f'<font size="9" color="#64748B">{quote.get("quote_number", "")}</font>',
+        bsty('QB', alignment=TA_RIGHT, leading=28)
+    )
+
+    header_data = [[logo_cell, '', company_info, quote_badge]]
+    header_t = Table(header_data, colWidths=[160, 10, 200, 162])
+    header_t.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('LINEBELOW', (0, 0), (-1, 0), 2, NAVY),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+    ]))
+    elements.append(header_t)
+    elements.append(Spacer(1, 12))
+
+    # ── 2. BAND: Estado + fechas ──────────────────────────────────────────
+    issue_date     = quote.get('issue_date', '—')
+    expiration_date = quote.get('expiration_date') or '—'
+    status         = quote.get('status', 'Borrador')
+    STATUS_COLORS  = {
+        'Borrador':  '#94A3B8', 'Enviada': '#3B82F6', 'Aprobada': '#10B981',
+        'Rechazada': '#EF4444', 'Vencida': '#EF4444', 'Por Pagar': '#F59E0B',
+        'Pagada':    '#10B981',
+    }
+    status_color = STATUS_COLORS.get(status, '#94A3B8')
+
+    band_data = [[
+        Paragraph(f'<font color="white"><b>ESTADO: {status.upper()}</b></font>',
+                  sty('ST', alignment=TA_CENTER, textColor=WHITE)),
+        Paragraph(f'<b>Fecha Emisión:</b> {issue_date}', N),
+        Paragraph(f'<b>Vencimiento:</b> {expiration_date}', N),
+        Paragraph(f'<b>Servicio:</b> {quote.get("service_name", "—")}', N),
+    ]]
+    band_t = Table(band_data, colWidths=[90, 100, 100, 242])
+    band_t.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (0, 0), colors.HexColor(status_color)),
+        ('BACKGROUND', (1, 0), (-1, 0), SLATE),
+        ('BOX', (0, 0), (-1, -1), 0.5, BORDER),
+        ('LINEBEFORE', (1, 0), (1, 0), 0.5, BORDER),
+        ('LINEBEFORE', (2, 0), (2, 0), 0.5, BORDER),
+        ('LINEBEFORE', (3, 0), (3, 0), 0.5, BORDER),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ('LEFTPADDING', (0, 0), (-1, -1), 8),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+        ('FONTNAME', (1, 0), (-1, 0), 'Helvetica'),
+        ('FONTSIZE', (1, 0), (-1, 0), 8),
+    ]))
+    elements.append(band_t)
+    elements.append(Spacer(1, 10))
+
+    # ── 3. CLIENTE ─────────────────────────────────────────────────────────
+    def header_band(text):
+        d = [[Paragraph(f'<font color="white"><b>{text}</b></font>',
+                        sty('HB', textColor=WHITE, fontSize=8.5))]]
+        t = Table(d, colWidths=[CONTENT_W])
+        t.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), NAVY),
+            ('TOPPADDING', (0, 0), (-1, -1), 5),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+            ('LEFTPADDING', (0, 0), (-1, -1), 10),
+        ]))
+        return t
+
+    elements.append(header_band('IDENTIFICACIÓN DEL CLIENTE'))
+    client_rows = [
+        [Paragraph('<b>Cliente / Razón Social:</b>', NB), Paragraph(quote.get('client_name', '—'), N),
+         Paragraph('<b>RUT:</b>', NB),                    Paragraph(quote.get('client_rut', '—'), N)],
+        [Paragraph('<b>Ciudad / Comuna:</b>', NB),        Paragraph(quote.get('client_city', '—'), N),
+         Paragraph('<b>Contacto:</b>', NB),               Paragraph(quote.get('client_contact', '—'), N)],
+        [Paragraph('<b>Área / Departamento:</b>', NB),    Paragraph(quote.get('client_area', '—'), N),
+         Paragraph('<b>Correo:</b>', NB),                 Paragraph(quote.get('client_email', '—'), N)],
+        [Paragraph('<b>Teléfono:</b>', NB),               Paragraph(quote.get('client_phone', '—'), N),
+         '', ''],
+    ]
+    client_t = Table(client_rows, colWidths=[110, 150, 80, 192])
+    client_t.setStyle(TableStyle([
+        ('BOX', (0, 0), (-1, -1), 0.5, BORDER),
+        ('INNERGRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#E2E8F0')),
+        ('BACKGROUND', (0, 0), (0, -1), SLATE),
+        ('BACKGROUND', (2, 0), (2, -1), SLATE),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('TOPPADDING', (0, 0), (-1, -1), 5),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+        ('LEFTPADDING', (0, 0), (-1, -1), 8),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+    ]))
+    elements.append(client_t)
+    elements.append(Spacer(1, 10))
+
+    # ── Helper: sección de tabla de ítems ──────────────────────────────────
+    def item_table_style(has_hh=False):
+        return TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#EFF6FF')),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('LINEBELOW', (0, 0), (-1, 0), 1.5, NAVY),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -2),
+             [WHITE, colors.HexColor('#F8FAFC')]),
+            ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#EFF6FF')),
+            ('LINEABOVE', (0, -1), (-1, -1), 1, NAVY),
+            ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+            ('GRID', (0, 0), (-1, -1), 0.3, BORDER),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('TOPPADDING', (0, 0), (-1, -1), 4),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+            ('LEFTPADDING', (0, 0), (-1, -1), 6),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+        ])
+
+    # ── helper: parse float safely ─────────────────────────────────────────
+    def pf(v):
+        try: return float(v or 0)
+        except: return 0.0
+
+    # ── Data ───────────────────────────────────────────────────────────────
+    labor_list     = quote.get('labor_items', []) or []
+    material_list  = quote.get('material_items', []) or []
+    equipment_list = quote.get('equipment_items', []) or []
+    other_list     = quote.get('other_expense_items', []) or []
+
+    sub_labor    = sum(pf(x.get('total')) for x in labor_list)
+    sub_material = sum(pf(x.get('total')) for x in material_list)
+    sub_equip    = sum(pf(x.get('total')) for x in equipment_list)
+    sub_other    = sum(pf(x.get('total')) for x in other_list)
+
+    def fmt(n): return f'${int(round(n)):,}'
+
+    # ── 4. MANO DE OBRA ───────────────────────────────────────────────────
+    if labor_list:
+        elements.append(header_band('1. MANO DE OBRA — Personal Técnico / Ingeniería'))
+        rows = [[
+            Paragraph('<b>Cargo / Rol</b>', NB), Paragraph('<b>Un.</b>', NCB),
+            Paragraph('<b>Nº</b>', NCB),         Paragraph('<b>Días</b>', NCB),
+            Paragraph('<b>HH/Día</b>', NCB),     Paragraph('<b>P. Unitario</b>', NRB),
+            Paragraph('<b>Total</b>', NRB),
+        ]]
+        total_hh = 0
+        for item in labor_list:
+            q   = int(pf(item.get('qty')))
+            d   = int(pf(item.get('days')))
+            hh  = pf(item.get('hh_per_day'))
+            total_hh += q * d * hh
+            rows.append([
+                Paragraph(item.get('role', '—'), N),
+                Paragraph(item.get('unit', 'HH'), NC),
+                Paragraph(str(q), NC), Paragraph(str(d), NC),
+                Paragraph(f'{hh:g}', NC),
+                Paragraph(fmt(pf(item.get('unit_price'))), NR),
+                Paragraph(fmt(pf(item.get('total'))), NR),
+            ])
+        rows.append([
+            Paragraph('<b>SUBTOTAL</b>', NB),
+            Paragraph('', NC), Paragraph('', NC), Paragraph('', NC),
+            Paragraph(f'<b>{total_hh:g} HH</b>', NCB),
+            Paragraph('', NR),
+            Paragraph(f'<b>{fmt(sub_labor)}</b>', NRB),
+        ])
+        t = Table(rows, colWidths=[182, 38, 38, 42, 52, 82, 98])
+        t.setStyle(item_table_style())
+        elements.append(t)
+        elements.append(Spacer(1, 8))
+
+    # ── 5. MATERIALES ─────────────────────────────────────────────────────
+    if material_list:
+        elements.append(header_band('2. MATERIALES E INSUMOS DIRECTOS'))
+        rows = [[
+            Paragraph('<b>Descripción</b>', NB), Paragraph('<b>Unidad</b>', NCB),
+            Paragraph('<b>Cantidad</b>', NCB),   Paragraph('<b>P. Unitario</b>', NRB),
+            Paragraph('<b>Total</b>', NRB),
+        ]]
+        for item in material_list:
+            rows.append([
+                Paragraph(item.get('name', '—'), N),
+                Paragraph(item.get('unit', '—'), NC),
+                Paragraph(f'{pf(item.get("qty")):g}', NC),
+                Paragraph(fmt(pf(item.get('unit_price'))), NR),
+                Paragraph(fmt(pf(item.get('total'))), NR),
+            ])
+        rows.append([
+            Paragraph('<b>SUBTOTAL</b>', NB), '', '',
+            Paragraph('', NR), Paragraph(f'<b>{fmt(sub_material)}</b>', NRB),
+        ])
+        t = Table(rows, colWidths=[272, 58, 62, 90, 50])
+        t.setStyle(item_table_style())
+        elements.append(t)
+        elements.append(Spacer(1, 8))
+
+    # ── 6. EQUIPOS ────────────────────────────────────────────────────────
+    if equipment_list:
+        elements.append(header_band('3. EQUIPOS, HERRAMIENTAS Y ELEMENTOS ANEXOS (sin markup)'))
+        rows = [[
+            Paragraph('<b>Descripción</b>', NB), Paragraph('<b>Unidad</b>', NCB),
+            Paragraph('<b>Cantidad</b>', NCB),   Paragraph('<b>P. Unitario</b>', NRB),
+            Paragraph('<b>Total</b>', NRB),
+        ]]
+        for item in equipment_list:
+            rows.append([
+                Paragraph(item.get('name', '—'), N),
+                Paragraph(item.get('unit', '—'), NC),
+                Paragraph(f'{pf(item.get("qty")):g}', NC),
+                Paragraph(fmt(pf(item.get('unit_price'))), NR),
+                Paragraph(fmt(pf(item.get('total'))), NR),
+            ])
+        rows.append([
+            Paragraph('<b>SUBTOTAL</b>', NB), '', '',
+            Paragraph('', NR), Paragraph(f'<b>{fmt(sub_equip)}</b>', NRB),
+        ])
+        t = Table(rows, colWidths=[272, 58, 62, 90, 50])
+        t.setStyle(item_table_style())
+        elements.append(t)
+        elements.append(Spacer(1, 8))
+
+    # ── 7. OTROS GASTOS ───────────────────────────────────────────────────
+    if other_list:
+        elements.append(header_band('4. OTROS GASTOS Y VIÁTICOS DIRECTOS'))
+        rows = [[
+            Paragraph('<b>Descripción del Gasto</b>', NB), Paragraph('<b>Unidad</b>', NCB),
+            Paragraph('<b>Cantidad</b>', NCB),              Paragraph('<b>P. Unitario</b>', NRB),
+            Paragraph('<b>Total</b>', NRB),
+        ]]
+        for item in other_list:
+            rows.append([
+                Paragraph(item.get('name', '—'), N),
+                Paragraph(item.get('unit', '—'), NC),
+                Paragraph(f'{pf(item.get("qty")):g}', NC),
+                Paragraph(fmt(pf(item.get('unit_price'))), NR),
+                Paragraph(fmt(pf(item.get('total'))), NR),
+            ])
+        rows.append([
+            Paragraph('<b>SUBTOTAL</b>', NB), '', '',
+            Paragraph('', NR), Paragraph(f'<b>{fmt(sub_other)}</b>', NRB),
+        ])
+        t = Table(rows, colWidths=[272, 58, 62, 90, 50])
+        t.setStyle(item_table_style())
+        elements.append(t)
+        elements.append(Spacer(1, 14))
+
+    # ── 8. RESUMEN FINANCIERO ─────────────────────────────────────────────
+    # Fórmula idéntica al Excel:
+    # AD52 = mano + mat + equipo + otros
+    # AD53 = overhead_pct * (AD52 - AD37_equipo)
+    # AD54 = utility_pct  * (AD52 + AD53 - AD37_equipo)
+    costo_directo = sub_labor + sub_material + sub_equip + sub_other
+    base_markup   = costo_directo - sub_equip          # excluye equipos
+    overhead_pct  = pf(quote.get('overhead_percent', 0.15))
+    utility_pct   = pf(quote.get('utility_percent', 0.15))
+    overhead_amt  = round(base_markup * overhead_pct)
+    utility_amt   = round((base_markup + overhead_amt) * utility_pct)
+    subtotal_neto = costo_directo + overhead_amt + utility_amt
+
+    # Notas + tabla de liquidación lado a lado
+    notes_text = (
+        '<font size="8">'
+        '<b>Notas y Condiciones Comerciales</b><br/><br/>'
+        '• Los valores expresados no incluyen IVA.<br/>'
+        '• Plazo de entrega se acordará según emisión de orden de compra.<br/>'
+        '• Forma de pago: 30 días contra factura aceptada.<br/>'
+        '• Validez de la cotización: 30 días desde la fecha de emisión.<br/>'
+        '• Equipos y herramientas se traspasan a costo directo.<br/><br/>'
+        '</font>'
+        '<font size="8" color="#1E3A8A"><b>Emitido por:</b></font><br/>'
+        '<font size="8">Sergio Hans Farías Anabalón<br/>Mecwell Limitada</font>'
+    )
+
+    summary_rows = [
+        [Paragraph('<b>Resumen de Liquidación de Planilla</b>', bsty('SH', alignment=TA_CENTER, fontSize=9, textColor=WHITE)), ''],
+        [Paragraph('Subtotal Mano de Obra', N), Paragraph(fmt(sub_labor), NR)],
+        [Paragraph('Subtotal Materiales', N),   Paragraph(fmt(sub_material), NR)],
+        [Paragraph('Subtotal Equipos', sty('SE', textColor=STEEL)), Paragraph(fmt(sub_equip), sty('SER', alignment=TA_RIGHT, textColor=STEEL))],
+        [Paragraph('Subtotal Otros Gastos', N), Paragraph(fmt(sub_other), NR)],
+        [Paragraph('<b>1. Total Costo Directo ($)</b>', NB), Paragraph(f'<b>{fmt(costo_directo)}</b>', NRB)],
+        [Paragraph(f'2. Gastos Generales ({overhead_pct*100:g}%)', sty('GG', textColor=RED_LT)),
+         Paragraph(f'<font color="#DC2626"><b>{fmt(overhead_amt)}</b></font>', NRB)],
+        [Paragraph(f'3. Utilidades ({utility_pct*100:g}%)', sty('UT', textColor=RED_LT)),
+         Paragraph(f'<font color="#DC2626"><b>{fmt(utility_amt)}</b></font>', NRB)],
+        [Paragraph('<b>Subtotal Neto a Facturar ($)</b>', bsty('SN', textColor=WHITE)), Paragraph(f'<font color="white"><b>{fmt(subtotal_neto)}</b></font>', NRB)],
+    ]
+
+    sum_t = Table(summary_rows, colWidths=[175, 85])
+    sum_t.setStyle(TableStyle([
+        # Header row
+        ('BACKGROUND', (0, 0), (-1, 0), NAVY),
+        ('SPAN', (0, 0), (-1, 0)),
+        ('TOPPADDING', (0, 0), (-1, 0), 7),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 7),
+        # Data rows alternating
+        ('ROWBACKGROUNDS', (0, 1), (-1, 6), [WHITE, SLATE]),
+        # Subtotals row
+        ('BACKGROUND', (0, 5), (-1, 5), colors.HexColor('#EFF6FF')),
+        ('LINEABOVE', (0, 5), (-1, 5), 1.2, NAVY),
+        ('FONTNAME', (0, 5), (-1, 5), 'Helvetica-Bold'),
+        # Markup rows
+        ('BACKGROUND', (0, 6), (-1, 7), colors.HexColor('#FFF7F7')),
+        # Total neto row
+        ('BACKGROUND', (0, 8), (-1, 8), NAVY),
+        ('LINEABOVE', (0, 8), (-1, 8), 2, NAVY),
+        # General
+        ('BOX', (0, 0), (-1, -1), 1, NAVY),
+        ('INNERGRID', (0, 1), (-1, -2), 0.3, BORDER),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('TOPPADDING', (0, 1), (-1, -1), 5),
+        ('BOTTOMPADDING', (0, 1), (-1, -1), 5),
+        ('LEFTPADDING', (0, 0), (-1, -1), 8),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+    ]))
+
+    footer_data = [[
+        Paragraph(notes_text, sty('NT', leading=13)),
+        sum_t
+    ]]
+    footer_t = Table(footer_data, colWidths=[262, 270])
+    footer_t.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 0),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+    ]))
+    elements.append(footer_t)
+    elements.append(Spacer(1, 20))
+
+    # ── 9. FIRMA ──────────────────────────────────────────────────────────
+    sig_data = [[
+        Paragraph(
+            '<br/><br/>___________________________<br/>'
+            '<b>Sergio Hans Farías Anabalón</b><br/>'
+            'Gerente / Representante<br/>'
+            'Mecwell Limitada<br/>'
+            f'Fecha: {quote.get("issue_date", "")}<br/>',
+            sty('SIG', alignment=TA_CENTER, fontSize=8, leading=13)
+        ),
+        Paragraph(
+            '<br/><br/>___________________________<br/>'
+            f'<b>{quote.get("client_name", "")}</b><br/>'
+            'Representante del Cliente<br/>'
+            f'{quote.get("client_contact", "")}<br/>'
+            'Firma y Timbre<br/>',
+            sty('SIG2', alignment=TA_CENTER, fontSize=8, leading=13)
+        ),
+    ]]
+    sig_t = Table(sig_data, colWidths=[266, 266])
+    sig_t.setStyle(TableStyle([
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('LINEABOVE', (0, 0), (0, 0), 0.5, BORDER),
+        ('LINEABOVE', (1, 0), (1, 0), 0.5, BORDER),
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
+    ]))
+    elements.append(sig_t)
+
+    doc.build(elements)
+    buffer.seek(0)
+    return buffer.getvalue()
+
+
+
     
     company_details_text = f"""
     <b>Razón Social:</b> Mecwell Ltda.<br/>
