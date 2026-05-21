@@ -41,6 +41,8 @@ class QuoteBase(BaseModel):
     client_contact: Optional[str] = None
     client_area: Optional[str] = None
     client_email: Optional[str] = None
+    client_contact_phone: Optional[str] = None
+    
     service_name: str
     status: str = "Borrador"
     issue_date: date

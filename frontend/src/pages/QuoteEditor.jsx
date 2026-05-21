@@ -57,6 +57,11 @@ export default function QuoteEditor() {
   const [clientContact, setClientContact] = useState('')
   const [clientArea, setClientArea] = useState('')
   const [clientEmail, setClientEmail] = useState('')
+  const [clientContactPhone, setClientContactPhone] = useState('')
+
+  // Variables Globales de Obra
+  const [globalDays, setGlobalDays] = useState(0)
+  const [globalHH, setGlobalHH] = useState(0)
 
   // Orden de Compra
   const [poNumber, setPoNumber] = useState('')
@@ -116,6 +121,7 @@ export default function QuoteEditor() {
         setClientContact(d.client_contact || '')
         setClientArea(d.client_area || '')
         setClientEmail(d.client_email || '')
+        setClientContactPhone(d.client_contact_phone || '')
         setLaborItems(d.labor_items || [])
         setMaterialItems(d.material_items || [])
         setEquipmentItems(d.equipment_items || [])
@@ -132,7 +138,7 @@ export default function QuoteEditor() {
 
   // ─── Handlers Mano de Obra ────────────────────────────────────────────────
   const addLaborRow = () => setLaborItems([...laborItems,
-    { role: '', unit: 'HH', qty: 0, days: 0, hh_per_day: 0, unit_price: 0, total: 0 }])
+    { role: '', unit: 'HH', qty: 0, days: globalDays, hh_per_day: globalHH, unit_price: 0, total: 0 }])
   const removeLaborRow = (i) => setLaborItems(laborItems.filter((_, idx) => idx !== i))
   const changeLaborField = (i, field, val) => {
     const rows = [...laborItems]
@@ -233,6 +239,7 @@ export default function QuoteEditor() {
       client_contact: clientContact.trim() || null,
       client_area: clientArea.trim() || null,
       client_email: clientEmail.trim() || null,
+      client_contact_phone: clientContactPhone.trim() || null,
       service_name: serviceName.trim(),
       status,
       issue_date: issueDate,
@@ -372,12 +379,30 @@ export default function QuoteEditor() {
               </div>
             </div>
           </MwCard>
+        </div>
+
+        {/* ── DATOS EMPRESA Y CLIENTE ───────────────────────────────────────── */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginTop: 24 }}>
+          
+          {/* Empresa Emisora (Fija) */}
+          <MwCard style={{ padding: 24, backgroundColor: '#F8FAFC' }}>
+            <h3 style={{ fontSize: 14, fontWeight: 700, color: '#1E4D8C', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 6, textTransform: 'uppercase' }}>
+              Datos de Emisión
+            </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr' }}><span style={{ fontSize: 12, fontWeight: 700, color: '#64748B' }}>Razón Social</span><span style={{ fontSize: 12, fontWeight: 600, color: '#0F172A', textAlign: 'right' }}>Mecwell Ltda.</span></div>
+              <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr' }}><span style={{ fontSize: 12, fontWeight: 700, color: '#64748B' }}>RUT</span><span style={{ fontSize: 12, fontWeight: 600, color: '#0F172A', textAlign: 'right' }}>78.349.631-3</span></div>
+              <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr' }}><span style={{ fontSize: 12, fontWeight: 700, color: '#64748B' }}>Domicilio</span><span style={{ fontSize: 12, fontWeight: 600, color: '#0F172A', textAlign: 'right' }}>Calbuco 5616 - Antofagasta - Chile</span></div>
+              <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr' }}><span style={{ fontSize: 12, fontWeight: 700, color: '#64748B' }}>Email</span><span style={{ fontSize: 12, fontWeight: 600, color: '#2563EB', textAlign: 'right' }}>mecwelllimitada@gmail.com</span></div>
+              <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr' }}><span style={{ fontSize: 12, fontWeight: 700, color: '#64748B' }}>Teléfono</span><span style={{ fontSize: 12, fontWeight: 600, color: '#0F172A', textAlign: 'right' }}>56 9 3426 1121</span></div>
+            </div>
+          </MwCard>
 
           {/* Cliente */}
-          <MwCard style={{ padding: 24 }}>
+          <MwCard style={{ padding: 24, borderTop: '4px solid #1E4D8C' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <h3 style={{ fontSize: 14, fontWeight: 700, color: '#1E4D8C', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <User size={15} /> Identificación del Cliente
+              <h3 style={{ fontSize: 14, fontWeight: 700, color: '#1E4D8C', display: 'flex', alignItems: 'center', gap: 6, textTransform: 'uppercase' }}>
+                <User size={15} /> Datos del Cliente
               </h3>
               <select
                 onChange={e => {
@@ -386,10 +411,11 @@ export default function QuoteEditor() {
                     setClientName(s.client_name || '')
                     setClientRut(s.client_rut || '')
                     setClientCity(s.client_city || s.location || '')
-                    setClientContact(s.client_contact || '')
                     setClientPhone(s.client_phone || '')
+                    setClientContact(s.client_contact || '')
+                    setClientArea(s.client_area || '')
                     setClientEmail(s.client_email || '')
-                    setClientArea(s.name || '')
+                    setClientContactPhone(s.client_contact_phone || '')
                   }
                 }}
                 style={{ padding: '4px 10px', fontSize: 12, borderRadius: 6, border: '1px solid #CBD5E1', backgroundColor: '#F8FAFC' }}
@@ -400,32 +426,47 @@ export default function QuoteEditor() {
                 ))}
               </select>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-              {[
-                { label: 'Cliente / Razón Social', key: 'clientName', val: clientName, set: setClientName, req: true, ph: 'ej. Minera Escondida Ltda.' },
-                { label: 'RUT Cliente', key: 'clientRut', val: clientRut, set: setClientRut, ph: 'ej. 76.123.456-K' },
-                { label: 'Ciudad / Comuna', key: 'clientCity', val: clientCity, set: setClientCity, ph: 'ej. Antofagasta' },
-                { label: 'Contacto Principal', key: 'clientContact', val: clientContact, set: setClientContact, ph: 'ej. Juan Pérez' },
-                { label: 'Área / Departamento', key: 'clientArea', val: clientArea, set: setClientArea, ph: 'ej. Abastecimiento' },
-                { label: 'Correo Electrónico', key: 'clientEmail', val: clientEmail, set: setClientEmail, ph: 'ej. contacto@empresa.cl', type: 'email' },
-                { label: 'Teléfono', key: 'clientPhone', val: clientPhone, set: setClientPhone, ph: 'ej. +56 9 8765 4321' },
-              ].map(f => (
-                <div key={f.key} style={f.key === 'clientName' ? { gridColumn: 'span 2' } : {}}>
-                  <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginBottom: 5 }}>
-                    {f.label}{f.req && <span style={{ color: '#EF4444' }}> *</span>}
-                  </label>
-                  <input
-                    type={f.type || 'text'}
-                    required={f.req}
-                    placeholder={f.ph}
-                    style={cellInputStyle}
-                    value={f.val}
-                    onChange={e => f.set(e.target.value)}
-                    onFocus={e => e.target.style.borderColor = '#1E4D8C'}
-                    onBlur={e => e.target.style.borderColor = '#E2E8F0'}
-                  />
+            
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px 30px' }}>
+              {/* Columna Izquierda */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginBottom: 5 }}>Cliente / Razón Social *</label>
+                  <input type="text" required style={cellInputStyle} value={clientName} onChange={e => setClientName(e.target.value)} onFocus={e => e.target.style.borderColor='#1E4D8C'} onBlur={e => e.target.style.borderColor='#E2E8F0'} />
                 </div>
-              ))}
+                <div>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginBottom: 5 }}>RUT Cliente</label>
+                  <input type="text" style={cellInputStyle} value={clientRut} onChange={e => setClientRut(e.target.value)} onFocus={e => e.target.style.borderColor='#1E4D8C'} onBlur={e => e.target.style.borderColor='#E2E8F0'} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginBottom: 5 }}>Ciudad / Comuna</label>
+                  <input type="text" style={cellInputStyle} value={clientCity} onChange={e => setClientCity(e.target.value)} onFocus={e => e.target.style.borderColor='#1E4D8C'} onBlur={e => e.target.style.borderColor='#E2E8F0'} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginBottom: 5 }}>Teléfono</label>
+                  <input type="text" style={cellInputStyle} value={clientPhone} onChange={e => setClientPhone(e.target.value)} onFocus={e => e.target.style.borderColor='#1E4D8C'} onBlur={e => e.target.style.borderColor='#E2E8F0'} />
+                </div>
+              </div>
+              
+              {/* Columna Derecha */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginBottom: 5 }}>Contacto</label>
+                  <input type="text" style={cellInputStyle} value={clientContact} onChange={e => setClientContact(e.target.value)} onFocus={e => e.target.style.borderColor='#1E4D8C'} onBlur={e => e.target.style.borderColor='#E2E8F0'} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginBottom: 5 }}>Área</label>
+                  <input type="text" style={cellInputStyle} value={clientArea} onChange={e => setClientArea(e.target.value)} onFocus={e => e.target.style.borderColor='#1E4D8C'} onBlur={e => e.target.style.borderColor='#E2E8F0'} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginBottom: 5 }}>Email</label>
+                  <input type="email" style={cellInputStyle} value={clientEmail} onChange={e => setClientEmail(e.target.value)} onFocus={e => e.target.style.borderColor='#1E4D8C'} onBlur={e => e.target.style.borderColor='#E2E8F0'} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginBottom: 5 }}>Teléfono</label>
+                  <input type="text" style={cellInputStyle} value={clientContactPhone} onChange={e => setClientContactPhone(e.target.value)} onFocus={e => e.target.style.borderColor='#1E4D8C'} onBlur={e => e.target.style.borderColor='#E2E8F0'} />
+                </div>
+              </div>
             </div>
           </MwCard>
         </div>
@@ -490,11 +531,24 @@ export default function QuoteEditor() {
         </MwCard>
 
         {/* ── TÍTULO PLANILLA ───────────────────────────────────────────────── */}
-        <div style={{ marginTop: 24, marginBottom: 4 }}>
-          <h2 style={{ fontSize: 17, fontWeight: 800, color: '#1E4D8C' }}>Planilla de Costos</h2>
-          <p style={{ fontSize: 12, color: '#94A3B8', marginTop: 2 }}>
-            Edite las celdas directamente. Totales y márgenes se calculan en tiempo real según la fórmula del Excel oficial.
-          </p>
+        <div style={{ marginTop: 24, marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+          <div>
+            <h2 style={{ fontSize: 17, fontWeight: 800, color: '#1E4D8C' }}>Planilla de Costos</h2>
+            <p style={{ fontSize: 12, color: '#94A3B8', marginTop: 2 }}>
+              Edite las celdas directamente. Totales y márgenes se calculan en tiempo real según la fórmula del Excel oficial.
+            </p>
+          </div>
+          
+          <div style={{ display: 'flex', gap: 16, backgroundColor: '#EFF6FF', padding: '10px 16px', borderRadius: 8, border: '1px solid #BFDBFE' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#1E40AF', marginBottom: 4 }}>Días Base</label>
+              <input type="number" min="0" value={globalDays} onChange={e => setGlobalDays(parseFloat(e.target.value) || 0)} style={{ width: 70, padding: '4px 8px', borderRadius: 4, border: '1px solid #93C5FD', textAlign: 'center', fontSize: 13, outline: 'none' }} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#1E40AF', marginBottom: 4 }}>HH/Día Base</label>
+              <input type="number" min="0" step="0.5" value={globalHH} onChange={e => setGlobalHH(parseFloat(e.target.value) || 0)} style={{ width: 70, padding: '4px 8px', borderRadius: 4, border: '1px solid #93C5FD', textAlign: 'center', fontSize: 13, outline: 'none' }} />
+            </div>
+          </div>
         </div>
 
         {/* ── 1. MANO DE OBRA ──────────────────────────────────────────────── */}

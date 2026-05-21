@@ -10,7 +10,9 @@ class SiteBase(BaseModel):
     client_city: Optional[str] = None
     client_phone: Optional[str] = None
     client_contact: Optional[str] = None
+    client_area: Optional[str] = None
     client_email: Optional[str] = None
+    client_contact_phone: Optional[str] = None
 
 class SiteCreate(SiteBase):
     pass

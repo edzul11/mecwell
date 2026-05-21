@@ -12,7 +12,9 @@ export default function SiteModal({ isOpen, onClose, onSave, initialData = null 
     client_city: '',
     client_phone: '',
     client_contact: '',
-    client_email: ''
+    client_area: '',
+    client_email: '',
+    client_contact_phone: ''
   })
   
   const [loading, setLoading] = useState(false)
@@ -29,12 +31,14 @@ export default function SiteModal({ isOpen, onClose, onSave, initialData = null 
           client_city: initialData.client_city || '',
           client_phone: initialData.client_phone || '',
           client_contact: initialData.client_contact || '',
-          client_email: initialData.client_email || ''
+          client_area: initialData.client_area || '',
+          client_email: initialData.client_email || '',
+          client_contact_phone: initialData.client_contact_phone || ''
         })
       } else {
         setFormData({
           name: '', location: '', status: 'active',
-          client_name: '', client_rut: '', client_city: '', client_phone: '', client_contact: '', client_email: ''
+          client_name: '', client_rut: '', client_city: '', client_phone: '', client_contact: '', client_area: '', client_email: '', client_contact_phone: ''
         })
       }
     }
@@ -110,25 +114,37 @@ export default function SiteModal({ isOpen, onClose, onSave, initialData = null 
                         </div>
                       </div>
 
-                      {/* Datos Mandante */}
+                      {/* Datos Mandante / Facturación */}
                       <div className="col-span-1 md:col-span-2 bg-blue-50 p-3 rounded-md mt-2">
-                        <h4 className="text-xs font-semibold text-blue-800 uppercase mb-3">Datos del Cliente / Empresa Mandante</h4>
+                        <h4 className="text-xs font-semibold text-blue-700 uppercase mb-3">Información del Cliente / Empresa</h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
-                            <label className="block text-sm font-medium leading-6 text-gray-900">Razón Social</label>
-                            <input type="text" name="client_name" value={formData.client_name} onChange={handleChange} className="pl-2 mt-1 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm" />
+                            <label className="block text-sm font-medium leading-6 text-gray-900">Cliente / Razón Social</label>
+                            <input type="text" name="client_name" value={formData.client_name} onChange={handleChange} placeholder="Ej. Minera Escondida Ltda." className="mt-1 block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6" />
                           </div>
                           <div>
                             <label className="block text-sm font-medium leading-6 text-gray-900">RUT</label>
-                            <input type="text" name="client_rut" value={formData.client_rut} onChange={handleChange} className="pl-2 mt-1 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm" />
+                            <input type="text" name="client_rut" value={formData.client_rut} onChange={handleChange} placeholder="Ej. 76.123.456-K" className="mt-1 block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6" />
                           </div>
                           <div>
-                            <label className="block text-sm font-medium leading-6 text-gray-900">Ciudad de Facturación</label>
-                            <input type="text" name="client_city" value={formData.client_city} onChange={handleChange} className="pl-2 mt-1 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm" />
+                            <label className="block text-sm font-medium leading-6 text-gray-900">Ciudad / Comuna</label>
+                            <input type="text" name="client_city" value={formData.client_city} onChange={handleChange} placeholder="Ej. Antofagasta" className="mt-1 block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6" />
                           </div>
                           <div>
-                            <label className="block text-sm font-medium leading-6 text-gray-900">Contacto / Atención</label>
-                            <input type="text" name="client_contact" value={formData.client_contact} onChange={handleChange} className="pl-2 mt-1 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm" />
+                            <label className="block text-sm font-medium leading-6 text-gray-900">Teléfono Empresa</label>
+                            <input type="text" name="client_phone" value={formData.client_phone} onChange={handleChange} placeholder="Ej. +56 55 2123456" className="mt-1 block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6" />
+                          </div>
+                        </div>
+                        
+                        <h4 className="text-xs font-semibold text-blue-700 uppercase mt-4 mb-3">Información del Contacto</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium leading-6 text-gray-900">Contacto Principal</label>
+                            <input type="text" name="client_contact" value={formData.client_contact} onChange={handleChange} placeholder="Ej. Juan Pérez" className="mt-1 block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6" />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium leading-6 text-gray-900">Área / Cargo</label>
+                            <input type="text" name="client_area" value={formData.client_area} onChange={handleChange} placeholder="Ej. Jefe de Proyecto" className="mt-1 block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6" />
                           </div>
                           <div>
                             <label className="block text-sm font-medium leading-6 text-gray-900">Email</label>
