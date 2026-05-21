@@ -1,15 +1,44 @@
 import { apiFetch } from '../supabaseClient'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { X } from 'lucide-react'
 
-export default function SiteModal({ isOpen, onClose, onSave }) {
+export default function SiteModal({ isOpen, onClose, onSave, initialData = null }) {
   const [formData, setFormData] = useState({
     name: '',
     location: '',
-    status: 'active'
+    status: 'active',
+    client_name: '',
+    client_rut: '',
+    client_city: '',
+    client_phone: '',
+    client_contact: '',
+    client_email: ''
   })
   
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (isOpen) {
+      if (initialData) {
+        setFormData({
+          name: initialData.name || '',
+          location: initialData.location || '',
+          status: initialData.status || 'active',
+          client_name: initialData.client_name || '',
+          client_rut: initialData.client_rut || '',
+          client_city: initialData.client_city || '',
+          client_phone: initialData.client_phone || '',
+          client_contact: initialData.client_contact || '',
+          client_email: initialData.client_email || ''
+        })
+      } else {
+        setFormData({
+          name: '', location: '', status: 'active',
+          client_name: '', client_rut: '', client_city: '', client_phone: '', client_contact: '', client_email: ''
+        })
+      }
+    }
+  }, [isOpen, initialData])
 
   if (!isOpen) return null;
 
@@ -22,17 +51,21 @@ export default function SiteModal({ isOpen, onClose, onSave }) {
     e.preventDefault()
     setLoading(true)
     try {
-      const response = await apiFetch('http://127.0.0.1:8000/api/v1/sites/', {
-        method: 'POST',
+      const url = initialData 
+        ? `http://127.0.0.1:8000/api/v1/sites/${initialData.id}` 
+        : 'http://127.0.0.1:8000/api/v1/sites/'
+      const method = initialData ? 'PUT' : 'POST'
+      
+      const response = await apiFetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
       })
-      if (!response.ok) throw new Error('Error al crear faena')
+      if (!response.ok) throw new Error('Error al guardar faena')
       
-      const newSite = await response.json()
-      onSave(newSite)
+      const savedSite = await response.json()
+      onSave(savedSite)
       onClose()
-      setFormData({ name: '', location: '', status: 'active' })
     } catch (err) {
       alert("Hubo un error al guardar.")
       console.error(err)
@@ -46,7 +79,7 @@ export default function SiteModal({ isOpen, onClose, onSave }) {
       <div className="fixed inset-0 bg-gray-500 bg-opacity-75"></div>
       <div className="fixed inset-0 z-10 w-screen overflow-y-auto">
         <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
-          <div className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
+          <div className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl sm:my-8 sm:w-full sm:max-w-2xl sm:p-6">
             <div className="absolute right-0 top-0 hidden pr-4 pt-4 sm:block">
               <button type="button" onClick={onClose} className="rounded-md bg-white text-gray-400 hover:text-gray-500">
                 <span className="sr-only">Cerrar</span>
@@ -56,17 +89,59 @@ export default function SiteModal({ isOpen, onClose, onSave }) {
             
             <div className="sm:flex sm:items-start">
               <div className="mt-3 text-center sm:mt-0 sm:text-left w-full">
-                <h3 className="text-base font-semibold leading-6 text-gray-900">Añadir Nueva Faena</h3>
+                <h3 className="text-base font-semibold leading-6 text-gray-900">
+                  {initialData ? 'Editar Faena' : 'Añadir Nueva Faena'}
+                </h3>
                 <div className="mt-4">
                   <form onSubmit={handleSubmit} className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium leading-6 text-gray-900">Nombre de Faena</label>
-                      <input required type="text" name="name" value={formData.name} onChange={handleChange} className="pl-2 mt-2 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm" />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Datos Faena */}
+                      <div className="col-span-1 md:col-span-2 bg-gray-50 p-3 rounded-md">
+                        <h4 className="text-xs font-semibold text-gray-500 uppercase mb-3">Datos del Proyecto</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium leading-6 text-gray-900">Nombre de Faena *</label>
+                            <input required type="text" name="name" value={formData.name} onChange={handleChange} className="pl-2 mt-1 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm" />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium leading-6 text-gray-900">Ubicación / Ciudad</label>
+                            <input type="text" name="location" value={formData.location} onChange={handleChange} className="pl-2 mt-1 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm" />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Datos Mandante */}
+                      <div className="col-span-1 md:col-span-2 bg-blue-50 p-3 rounded-md mt-2">
+                        <h4 className="text-xs font-semibold text-blue-800 uppercase mb-3">Datos del Cliente / Empresa Mandante</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium leading-6 text-gray-900">Razón Social</label>
+                            <input type="text" name="client_name" value={formData.client_name} onChange={handleChange} className="pl-2 mt-1 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm" />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium leading-6 text-gray-900">RUT</label>
+                            <input type="text" name="client_rut" value={formData.client_rut} onChange={handleChange} className="pl-2 mt-1 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm" />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium leading-6 text-gray-900">Ciudad de Facturación</label>
+                            <input type="text" name="client_city" value={formData.client_city} onChange={handleChange} className="pl-2 mt-1 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm" />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium leading-6 text-gray-900">Contacto / Atención</label>
+                            <input type="text" name="client_contact" value={formData.client_contact} onChange={handleChange} className="pl-2 mt-1 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm" />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium leading-6 text-gray-900">Email</label>
+                            <input type="email" name="client_email" value={formData.client_email} onChange={handleChange} className="pl-2 mt-1 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm" />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium leading-6 text-gray-900">Teléfono</label>
+                            <input type="text" name="client_phone" value={formData.client_phone} onChange={handleChange} className="pl-2 mt-1 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm" />
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium leading-6 text-gray-900">Ubicación</label>
-                      <input type="text" name="location" value={formData.location} onChange={handleChange} className="pl-2 mt-2 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm" />
-                    </div>
+
                     <div className="mt-5 sm:mt-6 sm:flex sm:flex-row-reverse">
                       <button type="submit" disabled={loading} className="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 sm:ml-3 sm:w-auto">
                         {loading ? 'Guardando...' : 'Guardar'}

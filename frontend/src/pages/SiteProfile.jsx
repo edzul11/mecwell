@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { apiFetch, resolveFileUrl } from '../supabaseClient'
-import { Users, Wallet, Package, TrendingUp, MapPin, ArrowLeft, ChevronRight, ExternalLink, FileText } from 'lucide-react'
+import { Users, Wallet, Package, TrendingUp, MapPin, ArrowLeft, ChevronRight, ExternalLink, FileText, Edit2 } from 'lucide-react'
 import { PageWrapper, StatusBadge, Card, MwTable, MwTr, MwTd } from '../components/MecwellUI'
+import SiteModal from '../components/SiteModal'
 
 const TABS = [
   { id: 'overview',  label: 'Resumen',           Icon: TrendingUp },
@@ -35,6 +36,7 @@ export default function SiteProfile() {
   const [addingWorker, setAddingWorker] = useState(false)
   const [selectedWorkerId, setSelectedWorkerId] = useState('')
   const [assigning, setAssigning] = useState(false)
+  const [isModalOpen, setIsModalOpen] = useState(false)
 
   const fetchData = async () => {
     try {
@@ -179,8 +181,20 @@ export default function SiteProfile() {
                 <MapPin style={{ width: 13, height: 13 }} /> {site.location}
               </span>
             )}
+            {site.client_name && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 13, color: '#64748B', marginLeft: 12 }}>
+                <strong>Cliente:</strong> {site.client_name}
+              </span>
+            )}
           </div>
-          <StatusBadge status={site.status || 'active'} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <button 
+              onClick={() => setIsModalOpen(true)}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8, border: '1px solid #E2E8F0', backgroundColor: '#fff', color: '#1E4D8C', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+              <Edit2 style={{ width: 14, height: 14 }} /> Editar
+            </button>
+            <StatusBadge status={site.status || 'active'} />
+          </div>
         </div>
         <div style={{ display: 'flex', gap: 4, borderTop: '1px solid #F1F5F9', paddingTop: 14, flexWrap: 'wrap' }}>
           {TABS.map(tab => (
@@ -406,6 +420,13 @@ export default function SiteProfile() {
           </MwTable>
         </>
       )}
+
+      <SiteModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        initialData={site}
+        onSave={(updatedSite) => setSite(updatedSite)} 
+      />
     </PageWrapper>
   )
 }

@@ -58,6 +58,14 @@ export default function QuoteEditor() {
   const [clientArea, setClientArea] = useState('')
   const [clientEmail, setClientEmail] = useState('')
 
+  // Orden de Compra
+  const [poNumber, setPoNumber] = useState('')
+  const [poFileUrl, setPoFileUrl] = useState('')
+  const [poMissingReason, setPoMissingReason] = useState('')
+
+  // Faenas
+  const [sites, setSites] = useState([])
+
   // Tablas de costos
   const [laborItems, setLaborItems] = useState([])
   const [materialItems, setMaterialItems] = useState([])
@@ -69,6 +77,12 @@ export default function QuoteEditor() {
   const [utilityPercent, setUtilityPercent] = useState(15)
 
   useEffect(() => {
+    // Cargar Faenas
+    apiFetch('http://127.0.0.1:8000/api/v1/sites/')
+      .then(r => r.json())
+      .then(d => setSites(Array.isArray(d) ? d : []))
+      .catch(e => console.error("Error cargando faenas", e))
+
     if (loadId) {
       fetchQuote(loadId)
     } else {
@@ -108,6 +122,9 @@ export default function QuoteEditor() {
         setOtherExpenseItems(d.other_expense_items || [])
         setOverheadPercent(Math.round((d.overhead_percent ?? 0.15) * 100))
         setUtilityPercent(Math.round((d.utility_percent ?? 0.15) * 100))
+        setPoNumber(d.po_number || '')
+        setPoFileUrl(d.po_file_url || '')
+        setPoMissingReason(d.po_missing_reason || '')
       }
     } catch (e) { console.error(e) }
     finally { setLoading(false) }
@@ -200,6 +217,12 @@ export default function QuoteEditor() {
     if (!quoteNumber.trim()) return alert('Debes ingresar un número de cotización.')
     if (!clientName.trim()) return alert('Debes ingresar el nombre del cliente.')
     if (!serviceName.trim()) return alert('Debes ingresar el nombre del servicio.')
+    
+    // Validación de Orden de Compra
+    if (['Aprobada', 'En Proceso'].includes(status) && !poFileUrl && !poMissingReason.trim()) {
+      return alert('Para cambiar el estado a Aprobada o En Proceso, debes adjuntar la Orden de Compra o indicar una razón por su ausencia.')
+    }
+
     setSaving(true)
     const payload = {
       quote_number: quoteNumber.trim(),
@@ -220,6 +243,9 @@ export default function QuoteEditor() {
       other_expense_items: otherExpenseItems.filter(x => x.name.trim() !== ''),
       overhead_percent: overheadPercent / 100,
       utility_percent: utilityPercent / 100,
+      po_number: poNumber.trim() || null,
+      po_file_url: poFileUrl || null,
+      po_missing_reason: poMissingReason.trim() || null,
     }
     try {
       const url = isEditMode
@@ -349,9 +375,31 @@ export default function QuoteEditor() {
 
           {/* Cliente */}
           <MwCard style={{ padding: 24 }}>
-            <h3 style={{ fontSize: 14, fontWeight: 700, color: '#1E4D8C', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <User size={15} /> Identificación del Cliente
-            </h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <h3 style={{ fontSize: 14, fontWeight: 700, color: '#1E4D8C', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <User size={15} /> Identificación del Cliente
+              </h3>
+              <select
+                onChange={e => {
+                  const s = sites.find(x => x.id === e.target.value)
+                  if (s) {
+                    setClientName(s.client_name || '')
+                    setClientRut(s.client_rut || '')
+                    setClientCity(s.client_city || s.location || '')
+                    setClientContact(s.client_contact || '')
+                    setClientPhone(s.client_phone || '')
+                    setClientEmail(s.client_email || '')
+                    setClientArea(s.name || '')
+                  }
+                }}
+                style={{ padding: '4px 10px', fontSize: 12, borderRadius: 6, border: '1px solid #CBD5E1', backgroundColor: '#F8FAFC' }}
+              >
+                <option value="">-- Autocompletar desde Faena --</option>
+                {sites.map(s => (
+                  <option key={s.id} value={s.id}>{s.name} {s.client_name ? `(${s.client_name})` : ''}</option>
+                ))}
+              </select>
+            </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
               {[
                 { label: 'Cliente / Razón Social', key: 'clientName', val: clientName, set: setClientName, req: true, ph: 'ej. Minera Escondida Ltda.' },
@@ -382,8 +430,67 @@ export default function QuoteEditor() {
           </MwCard>
         </div>
 
+        {/* ── ORDEN DE COMPRA ───────────────────────────────────────────────── */}
+        <MwCard style={{ padding: 24, marginTop: 24, borderTop: '4px solid #F59E0B' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+            <h3 style={{ fontSize: 14, fontWeight: 700, color: '#92400E', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <FileSpreadsheet size={15} /> Orden de Compra (OC)
+            </h3>
+            {['Aprobada', 'En Proceso'].includes(status) && !poFileUrl && !poMissingReason && (
+              <span style={{ fontSize: 12, fontWeight: 700, color: '#EF4444', backgroundColor: '#FEE2E2', padding: '4px 8px', borderRadius: 6 }}>
+                Requerida para estado {status}
+              </span>
+            )}
+          </div>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 14 }}>
+            <div>
+              <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginBottom: 5 }}>
+                Número de OC
+              </label>
+              <input
+                type="text"
+                placeholder="ej. 4500012345"
+                style={cellInputStyle}
+                value={poNumber}
+                onChange={e => setPoNumber(e.target.value)}
+                onFocus={e => e.target.style.borderColor = '#F59E0B'}
+                onBlur={e => e.target.style.borderColor = '#E2E8F0'}
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginBottom: 5 }}>
+                URL del Archivo (PDF)
+              </label>
+              <input
+                type="url"
+                placeholder="Enlace al PDF de la OC"
+                style={cellInputStyle}
+                value={poFileUrl}
+                onChange={e => setPoFileUrl(e.target.value)}
+                onFocus={e => e.target.style.borderColor = '#F59E0B'}
+                onBlur={e => e.target.style.borderColor = '#E2E8F0'}
+              />
+            </div>
+            <div style={{ gridColumn: 'span 2' }}>
+              <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginBottom: 5 }}>
+                Justificación (si no hay OC física)
+              </label>
+              <input
+                type="text"
+                placeholder="ej. Autorizado por correo por el Gerente de Planta"
+                style={cellInputStyle}
+                value={poMissingReason}
+                onChange={e => setPoMissingReason(e.target.value)}
+                onFocus={e => e.target.style.borderColor = '#F59E0B'}
+                onBlur={e => e.target.style.borderColor = '#E2E8F0'}
+              />
+            </div>
+          </div>
+        </MwCard>
+
         {/* ── TÍTULO PLANILLA ───────────────────────────────────────────────── */}
-        <div style={{ marginTop: 8, marginBottom: 4 }}>
+        <div style={{ marginTop: 24, marginBottom: 4 }}>
           <h2 style={{ fontSize: 17, fontWeight: 800, color: '#1E4D8C' }}>Planilla de Costos</h2>
           <p style={{ fontSize: 12, color: '#94A3B8', marginTop: 2 }}>
             Edite las celdas directamente. Totales y márgenes se calculan en tiempo real según la fórmula del Excel oficial.

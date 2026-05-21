@@ -51,6 +51,9 @@ class QuoteBase(BaseModel):
     other_expense_items: List[OtherExpenseItem] = []
     overhead_percent: float = 0.15
     utility_percent: float = 0.15
+    po_number: Optional[str] = None
+    po_file_url: Optional[str] = None
+    po_missing_reason: Optional[str] = None
 
     @field_validator('issue_date', 'expiration_date', mode='before')
     @classmethod

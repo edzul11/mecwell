@@ -212,7 +212,14 @@ export default function QuotesList() {
                 ${Math.round(total).toLocaleString('es-CL')}
               </MwTd>
               <MwTd>
-                <QuoteStatusBadge status={q.status} />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-start' }}>
+                  <QuoteStatusBadge status={q.status} />
+                  {['aprobada', 'en proceso'].includes((q.status || '').toLowerCase()) && !q.po_file_url && !q.po_missing_reason && (
+                    <span style={{ fontSize: 10, fontWeight: 700, color: '#EF4444', backgroundColor: '#FEE2E2', padding: '2px 6px', borderRadius: 4 }}>
+                      Falta OC
+                    </span>
+                  )}
+                </div>
               </MwTd>
               <MwTd right>
                 <div style={{ display: 'inline-flex', gap: 6 }}>
